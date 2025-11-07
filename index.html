@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metins: Desafios Interativos do dia</title>
+    <!-- Carrega o Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configuração da fonte e estilo base -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Orbitron:wght&display=swap');
+        :root {
+            --color-primary: #8b5cf6; /* Indigo-500 */
+            --color-secondary: #3b82f6; /* Blue-500 */        
+        {
+  	"hosting": {
+   	 "site": "metins-quiz-695ce",
+
+   	 "public": "public",
+    	...
+  	}
+	}
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        /* Estilos para Dark Mode (Padrão) */
+        .dark-mode {
+            background-color: #111827; /* Gray-900 */
+            color: #e5e7eb; /* Gray-200 */
+        }
+        .dark-mode .card {
+            background-color: #1f2937; /* Gray-800 */
+        }
+        .dark-mode .btn-primary {
+            background-color: var(--color-primary);
+            color: white;
+        }
+
+        /* Estilos para Light Mode */
+        .light-mode {
+            background-color: #f9fafb; /* Gray-50 */
+            color: #1f2937; /* Gray-800 */
+        }
+        .light-mode .card {
+            background-color: white;
+            border: 1px solid #e5e7eb;
+        }
+        .light-mode .btn-primary {
+            background-color: var(--color-primary);
+            color: white;
+        }
+        
+        .timer-glow {
+            font-family: 'Orbitron', sans-serif;
+            text-shadow: 0 0 10px var(--color-primary), 0 0 20px var(--color-primary);
+        }
+        .neon-border {
+            border: 2px solid var(--color-primary);
+            box-shadow: 0 0 10px var(--color-primary);
+        }
+
+        /* Destaque para o campo de nome */
+        .name-focus {
+            box-shadow: 0 0 15px #facc15; /* Yellow-400 */
+            animation: pulse-name 1.5s infinite;
+        }
+        @keyframes pulse-name {
+            0% { box-shadow: 0 0 5px #facc15; }
+            50% { box-shadow: 0 0 15px #facc15; }
+            100% { box-shadow: 0 0 5px #facc15; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    
+    <!-- FIREBASE IMPORT E SETUP -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Variáveis globais obrigatórias do Canvas
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        
+        // Inicialização
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        window.auth = auth; 
+        
+        setLogLevel('Debug');
+
+        let userId = null;
+        let dbReady = false;
+
+        // Referência da Coleção de Scores (Pública)
+        const SCORES_COLLECTION = `artifacts/${appId}/public/data/daily_scores`;
+
+        // -----------------------------------------------------------
+        // 1. AUTENTICAÇÃO E INICIALIZAÇÃO
+        // -----------------------------------------------------------
+
+        async function authenticate() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Erro na autenticação:", error);
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                userId = user.uid; 
+                dbReady = true; 
+                console.log("Usuário pronto:", userId);
+                loadRankingListener();
+            } else {
+                // Fallback para ID, mas o dbReady permanece false se a autenticação falhar
+                userId = crypto.randomUUID(); 
+                dbReady = false; 
+                console.warn("Autenticação pendente ou falhou. Ranking indisponível.");
+            }
+            
+            document.getElementById('user-id').textContent = `ID: ${userId.substring(0, 8)}`;
+        });
+
+        // -----------------------------------------------------------
+        // 2. LÓGICA DO RANKING (FIRESTORE)
+        // -----------------------------------------------------------
+
+        window.saveScore = async (score) => {
+            if (!dbReady) {
+                console.error("Firestore não está pronto. Verifique a autenticação.");
+                return;
+            }
+            
+            // Garante que o nome final seja o nome digitado ou um fallback
+            const finalUserName = window.playerName || `Jogador ${userId.substring(0, 4)}...`;
+
+            const playerDoc = {
+                userId: userId,
+                userName: finalUserName, 
+                score: score, 
+                timestamp: serverTimestamp(),
+                date: new Date().toISOString().split('T')[0] // Data para ranking diário
+            };
+            
+            // Salva o nome usado nesta sessão para destaque no ranking
+            window.lastSubmittedName = finalUserName;
+
+            try {
+                await addDoc(collection(db, SCORES_COLLECTION), playerDoc);
+                console.log("Pontuação da sessão salva com sucesso!");
+            } catch (e) {
+                console.error("Erro ao adicionar documento: ", e);
+            }
+        };
+
+        function loadRankingListener() {
+            if (!dbReady) return;
+            
+            const q = collection(db, SCORES_COLLECTION);
+            
+            // Listener em tempo real
+            onSnapshot(q, (snapshot) => {
+                const allScores = [];
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    if (data.score !== undefined) {
+                         allScores.push({ id: doc.id, ...data });
+                    }
+                });
+                renderHallDaFama(allScores);
+            }, (error) => {
+                console.error("Erro ao ouvir o ranking: ", error); 
+                document.getElementById('ranking-list').innerHTML = `<p class="text-red-400">Erro ao carregar ranking. Verifique as permissões do Firebase.</p>`;
+            });
+        }
+
+        function renderHallDaFama(scores) {
+            const rankingList = document.getElementById('ranking-list');
+            if (!rankingList) return;
+            rankingList.innerHTML = '';
+            
+            const today = new Date().toISOString().split('T')[0];
+
+            // Filtrar scores do dia
+            const dailyScores = scores.filter(s => s.date === today);
+
+            // Agrupar: Pegar a MAIOR pontuação de CADA usuário do dia
+            const dailyUserScoresMap = dailyScores.reduce((acc, score) => {
+                const currentBest = acc[score.userId] ? acc[score.userId].score : 0;
+                // Se a pontuação for maior, ou se o usuário atual for o último a enviar (para garantir o destaque)
+                if (score.score > currentBest || (score.userName === window.lastSubmittedName && score.score === currentBest)) {
+                    acc[score.userId] = { 
+                        score: score.score, 
+                        userName: score.userName 
+                    };
+                }
+                return acc;
+            }, {});
+
+            const rankedDaily = Object.values(dailyUserScoresMap)
+                .sort((a, b) => b.score - a.score) // Ordena pela maior pontuação
+                .slice(0, 10); // Top 10
+
+            if (rankedDaily.length === 0) {
+                rankingList.innerHTML = `<p class="text-gray-400 text-center py-4">Ninguém jogou hoje ainda. Seja o primeiro!</p>`;
+                return;
+            }
+
+            rankedDaily.forEach((entry, index) => {
+                const rankClass = index === 0 ? 'bg-yellow-500/20 text-yellow-300 font-bold neon-border' : 
+                                  index === 1 ? 'bg-gray-400/20 text-gray-300' :
+                                  index === 2 ? 'bg-amber-700/20 text-amber-500' : 'bg-gray-700/20 text-gray-300';
+                
+                // Destaque para o nome que acabou de ser enviado
+                const isLastPlayer = (entry.userName === window.lastSubmittedName);
+                const userHighlight = isLastPlayer ? ' neon-border border-indigo-500' : '';
+
+                rankingList.innerHTML += `
+                    <li class="flex justify-between items-center p-3 rounded-lg transition duration-200 ${rankClass} ${userHighlight}">
+                        <span class="w-1/12 text-center text-xl">${index + 1}°</span>
+                        <span class="w-8/12 truncate ${isLastPlayer ? 'text-indigo-400 font-bold' : ''}">${entry.userName} ${isLastPlayer ? '(Você)' : ''}</span>
+                        <span class="w-3/12 text-right font-orbitron text-lg">${entry.score} pts</span>
+                    </li>
+                `;
+            });
+            
+            // Limpa o destaque após renderizar (o próximo jogador terá um novo lastSubmittedName)
+            // Note: O destaque será limpo quando a página for recarregada ou no próximo envio.
+        }
+
+        window.addEventListener('load', authenticate);
+    </script>
+    
+    <!-- ------------------------------------------------------------------------------------------------------------------------------------------ -->
+    <!--                                                          JAVASCRIPT DE JOGO E LÓGICA                                                           -->
+    <!-- ------------------------------------------------------------------------------------------------------------------------------------------ -->
+    <script>
+        // Variável global para o nome (definida na Home)
+        window.playerName = 'Jogador Anônimo';
+        window.lastSubmittedName = 'Jogador Anônimo'; // Usado para destacar o último jogador no ranking
+        
+        let isDarkMode = true;
+        let timerInterval;
+        let timeRemaining = 180; // Duração total da sessão (3 minutos)
+        let quizActive = false;
+        
+        let currentChallengeIndex = 0; // Índice da pergunta atual na lista embaralhada
+        let sessionChallenges = [];    // Lista de desafios embaralhados para a sessão
+        let currentSessionScore = 0;   // Pontuação da sessão atual
+        const SCORE_PER_QUESTION = 100;
+        const INITIAL_TIME = 180; 
+
+        // Função de embaralhamento Fisher-Yates
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // Banco de Perguntas (FÁCEIS E COTIDIANAS)
+        const CHALLENGES = [
+            { 
+                id: 1, 
+                title: "O Enigma do Supermercado", 
+                question: "Se 4 maçãs custam R$ 8,00, e você tem R$ 15,00, quantas maçãs você pode comprar no máximo? (Responda o número de maçãs)", 
+                answer: 7 
+            },
+            { 
+                id: 2, 
+                title: "O Código da Reunião", 
+                question: "Se a reunião começa às 9:30 e dura 45 minutos, a que horas (em minutos após a hora cheia) ela termina? (Responda apenas o minuto)", 
+                answer: 15 
+            },
+            { 
+                id: 3, 
+                title: "A Regra dos Três Irmãos", 
+                question: "Tenho 3 filhos. O primeiro tem o dobro da idade do segundo, e o terceiro tem 5 anos. Se a soma das idades é 20, quantos anos tem o filho do meio? (Responda a idade)", 
+                answer: 5 
+            },
+            { 
+                id: 4, 
+                title: "O Desconto da Roupa", 
+                question: "Uma camisa custa R$ 100,00. Você consegue 20% de desconto. Se você pagar com uma nota de R$ 50,00, qual será o seu troco? (Responda o valor em Reais, sem vírgulas)", 
+                answer: 30 
+            },
+             { 
+                id: 5, 
+                title: "A Velocidade Média", 
+                question: "Você dirige por 2 horas a 60 km/h. Quantos quilômetros você percorreu? (Responda apenas o número)", 
+                answer: 120
+            },
+            { 
+                id: 6, 
+                title: "A Pizza Dividida", 
+                question: "Uma pizza tem 8 fatias. Se 3 amigos comem 2 fatias cada um, quantas fatias sobram? (Responda o número de fatias)", 
+                answer: 2
+            },
+            { 
+                id: 7, 
+                title: "O Enigma do Alfabeto", 
+                question: "Quantas vogais (A, E, I, O, U) existem na palavra 'METINS'? (Responda o número)", 
+                answer: 2
+            },
+            { 
+                id: 8, 
+                title: "O Tempo de Viagem", 
+                question: "Um carro viaja a 60 km/h. Quantos quilômetros ele percorre em 3 horas? (Responda o número)", 
+                answer: 180
+            },
+            { 
+                id: 9, 
+                title: "O Enigma dos Planetas", 
+                question: "Quantos planetas existem no nosso Sistema Solar? (Responda o número)", 
+                answer: 8
+            },
+            { 
+                id: 10, 
+                title: "O Enigma do Tempo", 
+                question: "Quantos minutos existem em uma hora e meia? (Responda o número)", 
+                answer: 90
+            },
+            { 
+                id: 11, 
+                title: "O Desafio do Triângulo", 
+                question: "Quantos lados tem um triângulo? (Responda o número)", 
+                answer: 3
+            },
+            { 
+                id: 12, 
+                title: "A Conta Rápida", 
+                question: "Qual é o resultado de 10 + (5 * 2)? (Responda o número)", 
+                answer: 20
+            },
+            { 
+                id: 13, 
+                title: "Cálculo Mental Rápido I", 
+                question: "Qual é o resultado de 15 - 8? (Responda o número)", 
+                answer: 7
+            },
+            { 
+                id: 14, 
+                title: "O dobro do número", 
+                question: "Qual é o dobro de 15? (Responda o número)", 
+                answer: 30
+            },
+            { 
+                id: 15, 
+                title: "Divisão Fácil", 
+                question: "Se você dividir 50 por 2, qual é o resultado? (Responda o número)", 
+                answer: 25
+            },
+            { 
+                id: 16, 
+                title: "Pares de Meias", 
+                question: "Quantos pares você pode formar com 16 meias? (Responda o número)", 
+                answer: 8
+            },
+            { 
+                id: 17, 
+                title: "Multiplicação Básica", 
+                question: "Quanto é 5 vezes 7? (Responda o número)", 
+                answer: 35
+            },
+            { 
+                id: 18, 
+                title: "Os Dias da Semana", 
+                question: "Quantos dias há em duas semanas? (Responda o número)", 
+                answer: 14
+            },
+            { 
+                id: 19, 
+                title: "Idade dos Irmãos", 
+                question: "Se você tem 10 anos e seu irmão é 2 anos mais velho, quantos anos ele tem? (Responda o número)", 
+                answer: 12
+            },
+            // NOVAS PERGUNTAS ADICIONADAS
+            { 
+                id: 20, 
+                title: "O Peso do Pão", 
+                question: "Se um padeiro faz 50 pães em uma hora, quantos pães ele faz em meia hora? (Responda o número)", 
+                answer: 25
+            },
+            { 
+                id: 21, 
+                title: "A Diferença de Idade", 
+                question: "João tem 30 anos e Maria tem 22. Qual é a diferença de idade entre eles? (Responda o número)", 
+                answer: 8
+            },
+            { 
+                id: 22, 
+                title: "Múltiplos de 5", 
+                question: "Qual é o próximo múltiplo de 5 depois de 35? (Responda o número)", 
+                answer: 40
+            },
+            { 
+                id: 23, 
+                title: "As Quatro Estações", 
+                question: "Quantas estações existem no ano? (Responda o número)", 
+                answer: 4
+            },
+            { 
+                id: 24, 
+                title: "Ordem das Operações", 
+                question: "Qual o resultado de 2 * (4 + 6)? (Responda o número)", 
+                answer: 20
+            },
+            { 
+                id: 25, 
+                title: "Metade do Tempo", 
+                question: "Metade de 60 minutos é igual a quantos minutos? (Responda o número)", 
+                answer: 30
+            }
+        ];
+        
+        /**
+         * Lógica de navegação: Oculta todas as views e mostra a view selecionada.
+         */
+        window.navigate = (viewId) => {
+            document.querySelectorAll('.view-content').forEach(view => {
+                view.classList.add('hidden');
+                view.classList.remove('opacity-100');
+            });
+            
+            const targetView = document.getElementById(`view-${viewId}`);
+            if (targetView) {
+                targetView.classList.remove('hidden');
+                setTimeout(() => targetView.classList.add('opacity-100'), 10);
+            }
+
+            // Ações específicas ao navegar
+            if (viewId === 'desafio') {
+                if (!quizActive) {
+                    // Inicia a sessão de quiz (que agora faz o embaralhamento)
+                    startQuizSession();
+                }
+            } else {
+                stopTimer(); // Para o timer se sair do desafio
+            }
+        };
+
+        /**
+         * 1. Valida o nome na Home View.
+         * 2. Se for válido, armazena globalmente e navega para o Desafio.
+         */
+        window.startChallengeFromHome = () => {
+            const nameInput = document.getElementById('home-player-name');
+            const feedback = document.getElementById('name-feedback');
+            const nameValue = nameInput.value.trim();
+
+            if (nameValue.length < 2) {
+                feedback.textContent = "⚠️ Por favor, digite seu nome ou apelido para continuar.";
+                // Adiciona um efeito de flash/chacoalhar no input para chamar a atenção
+                nameInput.classList.add('animate-pulse', 'border-red-500');
+                setTimeout(() => {
+                    nameInput.classList.remove('animate-pulse', 'border-red-500');
+                }, 1000);
+                return;
+            }
+            
+            feedback.textContent = "";
+            window.playerName = nameValue; // Armazena o nome globalmente
+            navigate('desafio');
+        };
+
+        /**
+         * Inicia a SESSÃO de Quiz: Reseta o estado, o timer e EMBARALHA as perguntas.
+         */
+        function startQuizSession() {
+            // 1. Cria e embaralha a lista de desafios para a sessão
+            sessionChallenges = shuffleArray([...CHALLENGES]);
+            currentChallengeIndex = 0; // Começa sempre do primeiro desafio embaralhado
+            quizActive = true;
+            timeRemaining = INITIAL_TIME;
+            currentSessionScore = 0;
+            
+            // 2. Reseta o estado da UI e feedback
+            document.getElementById('resposta').value = '';
+            document.getElementById('quiz-area').classList.remove('hidden');
+            document.getElementById('quiz-completed-message').classList.add('hidden');
+            document.getElementById('next-challenge-area').classList.add('hidden');
+            
+            // 3. Carrega a primeira pergunta do array embaralhado
+            loadNewQuestion();
+            
+            // 4. Inicia o Timer
+            updateTimerDisplay(); 
+            updateScoreDisplay();
+            startTimer();
+        }
+        
+        /**
+         * Carrega a próxima pergunta da lista embaralhada da sessão.
+         */
+        function loadNewQuestion() {
+            // 1. Verifica se todos os desafios foram concluídos
+            if (currentChallengeIndex >= sessionChallenges.length) {
+                // MODIFICAÇÃO: Mensagem personalizada para conclusão total
+                endQuizSession("Parabéns! Você é uma capivarinha inteligente!", false);
+                return;
+            }
+            
+            // 2. Pega o desafio da posição atual no array embaralhado
+            const challenge = sessionChallenges[currentChallengeIndex];
+            
+            // Atualiza o conteúdo do desafio
+            document.getElementById('challenge-title').textContent = challenge.title;
+            document.getElementById('challenge-question').innerHTML = `**Enigma:** ${challenge.question}`;
+            
+            // Limpa o campo de resposta
+            document.getElementById('resposta').value = '';
+            
+            // Feedback de acerto (se houver)
+            const feedbackEl = document.getElementById('question-feedback');
+            feedbackEl.textContent = "Nova pergunta!";
+            feedbackEl.classList.remove('text-red-400');
+            feedbackEl.classList.add('text-green-400');
+            setTimeout(() => { feedbackEl.textContent = ""; }, 1500);
+        }
+
+        /**
+         * Reseta o jogo, autentica novo jogador e força a volta para a Home.
+         * Essa é a função chamada para o "Próximo Jogador".
+         */
+        window.nextChallenge = async () => {
+            // Re-autentica o usuário para gerar um novo ID (simulando um novo jogador)
+            const newAuth = window.auth; 
+            if (newAuth) {
+                try {
+                    // Tenta forçar um novo login anônimo para ter um novo UID,
+                    // mas o ambiente Canvas geralmente mantém o mesmo até o fim da sessão da página.
+                    // O importante é limpar o nome e forçar a re-entrada.
+                    await newAuth.signInAnonymously(newAuth); 
+                    console.log("Novo jogador anônimo autenticado (se o ambiente permitir).");
+                } catch (error) {
+                    console.error("Erro ao autenticar novo jogador:", error);
+                }
+            }
+            
+            // Limpa o nome para o próximo jogador digitar o seu
+            document.getElementById('home-player-name').value = '';
+            window.playerName = 'Jogador Anônimo'; // Limpa o nome interno também
+            window.lastSubmittedName = 'Jogador Anônimo'; // Limpa o destaque de ranking
+            
+            // Zera o quiz
+            quizActive = false; 
+            
+            // Vai para a Home para que o próximo jogador insira seu nome
+            navigate('home');
+        }
+
+        /**
+         * Inicia o Timer Regressivo da SESSÃO.
+         */
+        function startTimer() {
+            stopTimer();
+            timerInterval = setInterval(() => {
+                if (timeRemaining > 0 && quizActive) {
+                    timeRemaining--;
+                    updateTimerDisplay();
+                } else if (quizActive) {
+                    // Tempo esgotado
+                    endQuizSession("O tempo acabou!", false);
+                }
+            }, 1000);
+        }
+        
+        /**
+         * Para o Timer Regressivo.
+         */
+        function stopTimer() {
+            clearInterval(timerInterval);
+        }
+
+        /**
+         * Atualiza a exibição do Timer.
+         */
+        function updateTimerDisplay() {
+            const minutes = String(Math.floor(timeRemaining / 60)).padStart(2, '0');
+            const seconds = String(timeRemaining % 60).padStart(2, '0');
+            document.getElementById('timer').textContent = `${minutes}:${seconds}`;
+        }
+        
+        /**
+         * Atualiza a exibição da Pontuação.
+         */
+        function updateScoreDisplay() {
+            document.getElementById('score').textContent = `${currentSessionScore}`;
+        }
+
+        /**
+         * Envia a resposta da pergunta ATUAL.
+         */
+        window.submitQuiz = () => {
+            if (!quizActive) return;
+
+            const challenge = sessionChallenges[currentChallengeIndex]; // Pega o desafio da lista embaralhada
+            const answerInput = document.getElementById('resposta');
+            // Remove espaços e converte para número
+            const userResponse = parseInt(answerInput.value.trim()); 
+            const feedbackEl = document.getElementById('question-feedback');
+
+            if (userResponse === challenge.answer) {
+                // ACERTOU
+                currentSessionScore += SCORE_PER_QUESTION;
+                updateScoreDisplay();
+                
+                // Avança para a próxima pergunta e a carrega
+                currentChallengeIndex++; 
+                loadNewQuestion(); 
+            } else {
+                // ERROU
+                feedbackEl.textContent = `Resposta incorreta. A resposta certa era: ${challenge.answer}`;
+                feedbackEl.classList.remove('text-green-400');
+                feedbackEl.classList.add('text-red-400');
+                
+                // Termina o jogo
+                endQuizSession("Você errou!", true);
+            }
+        };
+
+        /**
+         * Finaliza a SESSÃO de Quiz e mostra o resultado.
+         */
+        function endQuizSession(reasonText, isMistake) {
+            stopTimer();
+            quizActive = false;
+            
+            // Salva a pontuação final (se for maior que 0)
+            if (currentSessionScore > 0 && window.saveScore) {
+                window.saveScore(currentSessionScore);
+            }
+            
+            // Esconde a área do quiz
+            document.getElementById('quiz-area').classList.add('hidden');
+            
+            // Mostra a mensagem de conclusão
+            const completedMsg = document.getElementById('quiz-completed-message');
+            completedMsg.classList.remove('hidden');
+            document.getElementById('next-challenge-area').classList.remove('hidden'); // Exibe o botão Próximo Jogador
+            
+            document.getElementById('final-score-text').innerHTML = `
+                <span class="text-2xl font-bold">${reasonText}</span><br>
+                Pontuação Final: ${currentSessionScore} Pontos!
+            `;
+            
+            if (isMistake) {
+                completedMsg.classList.remove('bg-green-500/20', 'text-green-300');
+                completedMsg.classList.add('bg-red-500/20', 'text-red-300');
+            } else {
+                // Se o tempo acabou ou todas as perguntas foram feitas
+                completedMsg.classList.remove('bg-red-500/20', 'text-red-300');
+                completedMsg.classList.add('bg-green-500/20', 'text-green-300');
+            }
+            
+            // Vai para o Hall da Fama para mostrar o ranking em tempo real (após 3 segundos de feedback)
+            setTimeout(() => {
+                navigate('hall-da-fama');
+                
+                // Retorna automaticamente para a Home após 5 segundos no Hall da Fama (Ciclo de Próximo Jogador)
+                setTimeout(() => {
+                    window.nextChallenge(); // Reseta e navega para a Home
+                }, 5000); 
+
+            }, 3000);
+        }
+        
+        /**
+         * Configura os event listeners DOM que precisam esperar o carregamento.
+         */
+        function setupListeners() {
+            document.getElementById('mode-toggle').addEventListener('click', () => {
+                isDarkMode = !isDarkMode;
+                const body = document.body;
+                const sunIcon = document.getElementById('sun-icon');
+                
+                if (isDarkMode) {
+                    body.classList.remove('light-mode');
+                    body.classList.add('dark-mode');
+                    sunIcon.classList.remove('text-gray-900');
+                    sunIcon.classList.add('text-yellow-400');
+                    sunIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 4 0 11-8 0 4 4 0 018 0z" />`;
+
+                } else {
+                    body.classList.remove('dark-mode');
+                    body.classList.add('light-mode');
+                    sunIcon.classList.remove('text-yellow-400');
+                    sunIcon.classList.add('text-gray-900');
+                    sunIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />`;
+                }
+            });
+            
+            // Listener do menu mobile
+            document.querySelector('.md\\:hidden button[onclick="toggleMobileMenu()"]').addEventListener('click', toggleMobileMenu);
+        }
+
+        /**
+         * Alterna a visibilidade do menu mobile.
+         */
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Navegação inicial para a Home e configuração de listeners
+        window.onload = () => {
+            setupListeners(); // Adiciona listeners após o DOM carregar
+            navigate('home');
+        };
+
+    </script>
+    
+    <!-- ------------------------------------------------------------------------------------------------------------------------------------------ -->
+    <!--                                                                HTML STRUCTURE                                                                -->
+    <!-- ------------------------------------------------------------------------------------------------------------------------------------------ -->
+
+    <!-- Navegação Principal -->
+    <nav class="sticky top-0 z-50 bg-gray-800 dark-mode:bg-gray-800 shadow-xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo/Título -->
+                <div class="flex items-center">
+                    <span class="text-2xl font-extrabold font-orbitron text-indigo-400 cursor-pointer" onclick="navigate('home')">METINS</span>
+                </div>
+                <!-- Links de Navegação (Menu Mobile/Desktop) -->
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <button onclick="navigate('home')" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Home</button>
+                        <button onclick="navigate('desafio')" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Desafio da Semana</button>
+                        <button onclick="navigate('hall-da-fama')" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Hall da Fama</button>
+                        <button onclick="navigate('sobre')" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Sobre</button>
+                    </div>
+                </div>
+                <!-- Botão de Modo Escuro/Claro + ID do Usuário (Mobile/Desktop) -->
+                <div class="flex items-center">
+                    <span id="user-id" class="text-xs text-indigo-300 mr-4 hidden sm:block truncate">ID: Carregando...</span>
+                    <button id="mode-toggle" class="p-2 rounded-full hover:bg-gray-700 transition duration-150">
+                        <!-- SVG do Sol (ícone de light mode) -->
+                        <svg class="h-6 w-6 text-yellow-400" id="sun-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                    </button>
+                    <!-- Menu Mobile Button -->
+                    <button class="md:hidden p-2 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white ml-2" onclick="toggleMobileMenu()">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Menu Mobile (oculto por padrão) -->
+        <div id="mobile-menu" class="md:hidden hidden bg-gray-900 shadow-inner">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <button onclick="navigate('home'); toggleMobileMenu();" class="block w-full text-left nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-base font-medium">Home</button>
+                <button onclick="navigate('desafio'); toggleMobileMenu();" class="block w-full text-left nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-base font-medium">Desafio da Semana</button>
+                <button onclick="navigate('hall-da-fama'); toggleMobileMenu();" class="block w-full text-left nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-base font-medium">Hall da Fama</button>
+                <button onclick="navigate('sobre'); toggleMobileMenu();" class="block w-full text-left nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-base font-medium">Sobre</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Conteúdo Principal (Centralizado) -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-16">
+        
+        <!-- Conteúdo Visível (Switch de Visão) -->
+        <div id="content-views">
+
+            <!-- #1 HOME VIEW -->
+            <section id="view-home" class="view-content transition-opacity duration-500">
+                <div class="text-center py-12 px-6 card rounded-2xl shadow-2xl">
+                    <h1 class="text-5xl sm:text-7xl font-extrabold font-orbitron mb-4 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400">
+                        METINS
+                    </h1>
+                    <p class="text-xl sm:text-2xl mb-8 text-gray-400">
+                        O portal de desafios lógicos e criativos para testar suas habilidades!
+                    </p>
+                    <p class="max-w-3xl mx-auto text-lg mb-10 text-gray-300">
+                        **Modo Sobrevivência:** Acerte o máximo de perguntas que puder em 3 minutos. Se você errar, o jogo acaba!
+                    </p>
+
+                    <!-- CAMPO DE NOME NA HOME -->
+                    <div class="mb-8 max-w-sm mx-auto p-4 rounded-xl bg-gray-700/50 neon-border border-yellow-500/50">
+                        <label for="home-player-name" class="block text-sm font-medium mb-2 text-yellow-300 text-left">1. Digite seu Nome/Apelido para o Ranking:</label>
+                        <input type="text" id="home-player-name" class="w-full p-3 rounded-lg bg-gray-800 border-2 border-yellow-500 focus:ring-yellow-500 focus:border-yellow-500 text-white placeholder-gray-400" placeholder="Seu nome">
+                        <p id="name-feedback" class="mt-2 text-red-400 text-sm text-center min-h-[1.5rem]"></p>
+                    </div>
+                    <!-- FIM CAMPO DE NOME NA HOME -->
+                    
+                    <!-- Botão Inicia o Desafio com Validação -->
+                    <button onclick="startChallengeFromHome()" class="btn-primary inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-full shadow-lg transition duration-300 transform hover:scale-105 hover:shadow-indigo-500/50">
+                        <svg class="h-6 w-6 mr-2 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                        2. Começar Desafio
+                    </button>
+                </div>
+            </section>
+
+            <!-- #2 DESAFIO DA SEMANA VIEW -->
+            <section id="view-desafio" class="view-content hidden transition-opacity duration-500">
+                
+                <!-- Botão de Reinício Rápido (Aparece após o fim do desafio) -->
+                <div id="next-challenge-area" class="mb-4 hidden text-center">
+                    <button onclick="nextChallenge()" class="w-full md:w-auto px-8 py-3 font-semibold rounded-lg shadow-xl transition duration-300 transform hover:scale-[1.02] bg-green-600 hover:bg-green-700 text-white">
+                        <svg class="h-5 w-5 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                        Próximo Jogador / Desafio (Manual)
+                    </button>
+                </div>
+
+                <div class="card p-6 md:p-10 rounded-2xl shadow-2xl">
+                    
+                    <h2 id="challenge-title" class="text-3xl font-bold mb-6 text-indigo-400 border-b border-gray-700 pb-2"></h2>
+                    
+                    <!-- Placar e Timer -->
+                    <div class="flex justify-around mb-6 text-center">
+                        <div>
+                            <span id="timer" classs="text-4xl font-extrabold timer-glow">03:00</span>
+                            <p class="text-sm text-gray-500">Tempo Restante</p>
+                        </div>
+                        <div>
+                            <span id="score" class="text-4xl font-extrabold timer-glow text-green-400">0</span>
+                            <p class="text-sm text-gray-500">Pontos</p>
+                        </div>
+                    </div>
+
+                    <!-- Enigma -->
+                    <p id="challenge-question" class="text-lg mb-8 text-gray-300"></p>
+
+                    <!-- Quiz Form -->
+                    <div id="quiz-area">
+                        <label for="resposta" class="block text-sm font-medium mb-2 text-indigo-300">Sua Resposta (apenas o número inteiro):</label>
+                        <input type="number" id="resposta" class="w-full p-3 mb-4 rounded-lg bg-gray-700 border-2 border-indigo-500 focus:ring-indigo-500 focus:border-indigo-500 text-white placeholder-gray-400" placeholder="Digite sua resposta...">
+                        
+                        <!-- Feedback da Pergunta (Acerto/Erro) -->
+                        <p id="question-feedback" class="text-center text-green-400 font-bold mb-4 min-h-[1.5rem]"></p>
+                        
+                        <button onclick="submitQuiz()" class="btn-primary w-full md:w-auto px-6 py-3 font-semibold rounded-lg shadow-md transition duration-300 transform hover:scale-[1.02]">
+                            Responder
+                        </button>
+                    </div>
+
+                    <!-- Após Conclusão -->
+                    <div id="quiz-completed-message" class="hidden text-center p-6 mt-6 rounded-lg bg-green-500/20 text-green-300">
+                        <p class="text-xl font-bold mb-2">Sessão Concluída!</p>
+                        <p id="final-score-text">Sua pontuação final será exibida aqui.</p>
+                    </div>
+                    
+                </div>
+            </section>
+
+            <!-- #3 HALL DA FAMA VIEW -->
+            <section id="view-hall-da-fama" class="view-content hidden transition-opacity duration-500">
+                <div class="card p-6 md:p-10 rounded-2xl shadow-2xl">
+                    <h2 class="text-3xl font-bold mb-6 text-indigo-400 border-b border-gray-700 pb-2">Hall da Fama - Rank do Dia</h2>
+                    
+                    <p class="text-sm mb-4 text-gray-500">
+                        As 10 maiores pontuações (por sessão) no desafio de hoje. (Atualização em tempo real via Firestore)
+                    </p>
+
+                    <ol id="ranking-list" class="space-y-3 list-none">
+                        <li class="text-center p-3 text-gray-400">Carregando ranking...</li>
+                        <!-- Itens do ranking serão inseridos aqui pelo JavaScript -->
+                    </ol>
+                </div>
+            </section>
+
+            <!-- #4 SOBRE O PROJETO VIEW -->
+            <section id="view-sobre" class="view-content hidden transition-opacity duration-500">
+                <div class="card p-6 md:p-10 rounded-2xl shadow-2xl">
+                    <h2 class="text-3xl font-bold mb-6 text-indigo-400 border-b border-gray-700 pb-2">Sobre o Projeto "Metins"</h2>
+                    
+                    <div class="space-y-6 text-gray-300">
+                        <p>
+                            O **Metins** foi concebido como um projeto de demonstração interativa para a disciplina de [Nome da Disciplina]. O objetivo principal é mostrar a integração de diversas tecnologias web de forma coesa e com foco em usabilidade e engajamento.
+                        </p>
+
+                        <h3 class="text-xl font-semibold text-indigo-300 mt-4">Tecnologias Utilizadas</h3>
+                        <ul class="list-disc list-inside space-y-2 ml-4">
+                            <li>**HTML5:** Estrutura base do site.</li>
+                            <li>**Tailwind CSS:** Para um design moderno, responsivo e baseado em classes de utilidade.</li>
+                            <li>**JavaScript (ES6+):** Lógica de navegação, timer e interatividade do quiz.</li>
+                            <li>**Firebase Firestore:** Persistência de dados em tempo real para o Hall da Fama (ranking).</li>
+                        </ul>
+
+                        <h3 class="text-xl font-semibold text-indigo-300 mt-4">Equipe e Contato</h3>
+                        <p>
+                            Este projeto foi desenvolvido por: **André Mota**, **João Gabriel**, e **Luís Felipe**. Para sugestões ou *feedback*, envie um e-mail para [Seu E-mail].
+                        </p>
+                    </div>
+                </div>
+            </section>
+            
+        </div>
+    </main>
+
+</body>
+</html>
