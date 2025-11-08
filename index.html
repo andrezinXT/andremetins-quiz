@@ -1,745 +1,749 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Metins: Desafios Interativos do dia</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Orbitron:wght&display=swap');
-         :root {
-            --color-primary: #8b5cf6; /* Indigo-500 */
-            --color-secondary: #3b82f6; /* Blue-500 */      
-        }
-         body {
-            font-family: 'Inter', sans-serif;
-            transition: background-color 0.3s, color 0.3s;
-        }
-         /* Estilos para Dark Mode (Padrão) */
-         .dark-mode {
-            background-color: #111827; /* Gray-900 */
-            color: #e5e7eb; /* Gray-200 */
-        }
-         .dark-mode .card {
-            background-color: #1f2937; /* Gray-800 */
-        }
-         .dark-mode .btn-primary {
-            background-color: var(--color-primary);
-            color: white;
-        }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metins: Desafios Interativos do dia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Orbitron:wght&display=swap');
+         :root {
+            --color-primary: #8b5cf6; /* Indigo-500 */
+            --color-secondary: #3b82f6; /* Blue-500 */      
+        }
+         body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+         /* Estilos para Dark Mode (Padrão) */
+         .dark-mode {
+            background-color: #111827; /* Gray-900 */
+            color: #e5e7eb; /* Gray-200 */
+        }
+         .dark-mode .card {
+            background-color: #1f2937; /* Gray-800 */
+        }
+         .dark-mode .btn-primary {
+            background-color: var(--color-primary);
+            color: white;
+        }
 
-         /* Estilos para Light Mode */
-         .light-mode {
-            background-color: #f9fafb; /* Gray-50 */
-            color: #1f2937; /* Gray-800 */
-        }
-         .light-mode .card {
-            background-color: white;
-            border: 1px solid #e5e7eb;
-        }
-         .light-mode .btn-primary {
-            background-color: var(--color-primary);
-            color: white;
-        }
-        
-         .timer-glow {
-            font-family: 'Orbitron', sans-serif;
-            text-shadow: 0 0 10px var(--color-primary), 0 0 20px var(--color-primary);
-        }
-         .neon-border {
-            border: 2px solid var(--color-primary);
-            box-shadow: 0 0 10px var(--color-primary);
-        }
+         /* Estilos para Light Mode */
+         .light-mode {
+            background-color: #f9fafb; /* Gray-50 */
+            color: #1f2937; /* Gray-800 */
+        }
+         .light-mode .card {
+            background-color: white;
+            border: 1px solid #e5e7eb;
+        }
+         .light-mode .btn-primary {
+            background-color: var(--color-primary);
+            color: white;
+        }
+        
+         .timer-glow {
+            font-family: 'Orbitron', sans-serif;
+            text-shadow: 0 0 10px var(--color-primary), 0 0 20px var(--color-primary);
+        }
+         .neon-border {
+            border: 2px solid var(--color-primary);
+            box-shadow: 0 0 10px var(--color-primary);
+        }
 
-         /* Destaque para o campo de nome */
-         .name-focus {
-            box-shadow: 0 0 15px #facc15; /* Yellow-400 */
-            animation: pulse-name 1.5s infinite;
-        }
-         @keyframes pulse-name {
-            0% { box-shadow: 0 0 5px #facc15; }
-            50% { box-shadow: 0 0 15px #facc15; }
-            100% { box-shadow: 0 0 5px #facc15; }
-        }
-    </style>
+         /* Destaque para o campo de nome */
+         .name-focus {
+            box-shadow: 0 0 15px #facc15; /* Yellow-400 */
+            animation: pulse-name 1.5s infinite;
+            /* CORREÇÃO AQUI: Adicionado no CSS para evitar o erro de sintaxe no elemento HTML */
+            border-color: #facc15 !important;
+            outline: none; 
+        }
+         @keyframes pulse-name {
+            0% { box-shadow: 0 0 5px #facc15; }
+            50% { box-shadow: 0 0 15px #facc15; }
+            100% { box-shadow: 0 0 5px #facc15; }
+        }
+    </style>
 </head>
 <body class="dark-mode">
-    
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, setLogLevel, query, orderBy, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        // =========================================================================
-        // CONFIGURAÇÃO REAL DO PROJETO 'metins-quiz'
-        // =========================================================================
-        const firebaseConfig = {
-            apiKey: "AIzaSyBxWFlxHFlDE0Uyiozrz275MJsm1VP6QjK",
-            authDomain: "metins-64fff.firebaseapp.com",
-            projectId: "metins-64fff",
-            storageBucket: "metins-64fff.firebaseapp.com",
-            messagingSenderId: "891946067847",
-            appId: "1:891946067847:web:f87ad568ffe6ffa2a8d522",
-            measurementId: "G-SLFE6LNCM8" 
-        };
-        
-        // Inicialização
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        window.auth = auth; 
-        
-        setLogLevel('Debug');
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, setLogLevel, query, orderBy, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // =========================================================================
+        // CONFIGURAÇÃO REAL DO PROJETO 'metins-quiz'
+        // =========================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBxWFlxHFlDE0Uyiozrz275MJsm1VP6QjK",
+            authDomain: "metins-64fff.firebaseapp.com",
+            projectId: "metins-64fff",
+            storageBucket: "metins-64fff.firebaseapp.com",
+            messagingSenderId: "891946067847",
+            appId: "1:891946067847:web:f87ad568ffe6ffa2a8d522",
+            measurementId: "G-SLFE6LNCM8" 
+        };
+        
+        // Inicialização
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        window.auth = auth; 
+        
+        setLogLevel('Debug');
 
-        let userId = null;
-        let dbReady = false;
+        let userId = null;
+        let dbReady = false;
 
-        const SCORES_COLLECTION = "resultados"; 
+        const SCORES_COLLECTION = "resultados"; 
 
-        // 🛑 NOVO: Função para garantir o formato de data consistente
-        function getTodayDate() {
-            return new Date().toISOString().split('T')[0];
-        }
+        // 🛑 NOVO: Função para garantir o formato de data consistente
+        function getTodayDate() {
+            return new Date().toISOString().split('T')[0];
+        }
 
-        // -----------------------------------------------------------
-        // 1. AUTENTICAÇÃO E INICIALIZAÇÃO
-        // -----------------------------------------------------------
+        // -----------------------------------------------------------
+        // 1. AUTENTICAÇÃO E INICIALIZAÇÃO
+        // -----------------------------------------------------------
 
-        async function authenticate() {
-            try {
-                // Autenticação anônima
-                await signInAnonymously(auth);
-            } catch (error) {
-                console.error("Erro na autenticação:", error);
-            }
-        }
+        async function authenticate() {
+            try {
+                // Autenticação anônima
+                await signInAnonymously(auth);
+            } catch (error) {
+                console.error("Erro na autenticação:", error);
+            }
+        }
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                userId = user.uid;  
-                dbReady = true; 
-                console.log("Usuário pronto:", userId);
-                loadRankingListener();
-            } else {
-                // Fallback para ID
-                userId = crypto.randomUUID(); 
-                dbReady = false; 
-                console.warn("Autenticação pendente ou falhou. Ranking indisponível.");
-            }
-            
-            document.getElementById('user-id').textContent = `ID: ${userId.substring(0, 8)}`;
-        });
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                userId = user.uid;  
+                dbReady = true; 
+                console.log("Usuário pronto:", userId);
+                loadRankingListener();
+            } else {
+                // Fallback para ID
+                userId = crypto.randomUUID(); 
+                dbReady = false; 
+                console.warn("Autenticação pendente ou falhou. Ranking indisponível.");
+            }
+            
+            document.getElementById('user-id').textContent = `ID: ${userId.substring(0, 8)}`;
+        });
 
-        // -----------------------------------------------------------
-        // 2. LÓGICA DO RANKING (FIRESTORE)
-        // -----------------------------------------------------------
+        // -----------------------------------------------------------
+        // 2. LÓGICA DO RANKING (FIRESTORE)
+        // -----------------------------------------------------------
 
-        window.saveScore = async (score) => {
-            if (!dbReady) {
-                console.error("Firestore não está pronto. Verifique a autenticação.");
-                return;
-            }
-            
-            const finalUserName = window.playerName || `Jogador ${userId.substring(0, 4)}...`;
+        window.saveScore = async (score) => {
+            if (!dbReady) {
+                console.error("Firestore não está pronto. Verifique a autenticação.");
+                return;
+            }
+            
+            const finalUserName = window.playerName || `Jogador ${userId.substring(0, 4)}...`;
 
-            const playerDoc = {
-                userId: userId,
-                userName: finalUserName, 
-                score: score, 
-                timestamp: serverTimestamp(),
-                date: getTodayDate() // Usa a função corrigida
-            };
-            
-            window.lastSubmittedName = finalUserName;
+            const playerDoc = {
+                userId: userId,
+                userName: finalUserName, 
+                score: score, 
+                timestamp: serverTimestamp(),
+                date: getTodayDate() // Usa a função corrigida
+            };
+            
+            window.lastSubmittedName = finalUserName;
 
-            try {
-                await addDoc(collection(db, SCORES_COLLECTION), playerDoc);
-                console.log("Pontuação da sessão salva com sucesso!");
-            } catch (e) {
-                console.error("Erro ao adicionar documento: ", e);
-            }
-        };
+            try {
+                await addDoc(collection(db, SCORES_COLLECTION), playerDoc);
+                console.log("Pontuação da sessão salva com sucesso!");
+            } catch (e) {
+                console.error("Erro ao adicionar documento: ", e);
+            }
+        };
 
-        // <<<<<<<<<<<<<<<<<<<< FUNÇÃO DE CARREGAMENTO DO RANKING CORRIGIDA >>>>>>>>>>>>>>>>>>>>
-        function loadRankingListener() {
-            if (!dbReady) return;
-            
-            const today = getTodayDate(); // Obtém a data de hoje para o filtro
+        // <<<<<<<<<<<<<<<<<<<< FUNÇÃO DE CARREGAMENTO DO RANKING CORRIGIDA >>>>>>>>>>>>>>>>>>>>
+        function loadRankingListener() {
+            if (!dbReady) return;
+            
+            const today = getTodayDate(); // Obtém a data de hoje para o filtro
 
-            // 1. Cria a consulta (query)
-            // 🛑 CORRIGIDO: Adicionando o filtro de data (where) à consulta do Firestore
-            const q = query(
-                collection(db, SCORES_COLLECTION),
-                where("date", "==", today),
-                // 🛑 CORRIGIDO: Ordenação OBRIGATÓRIA para o índice composto com 'date'
-                orderBy("date", "asc"), 
-                orderBy("score", "desc"),    // Ordem principal: score (maior para o menor)
-                orderBy("userName", "asc")   // Ordem secundária (desempate): nome
-            );
-            
-            // 2. Listener em tempo real
-            onSnapshot(q, (snapshot) => {
-                const dailyScores = []; // Renomeado para dailyScores
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
-                    // Todos os dados no snapshot já são do dia atual e já vêm ordenados.
-                    if (data.score !== undefined) {
-                           dailyScores.push({ id: doc.id, ...data });
-                    }
-                });
-                
-                // Agora renderHallDaFama precisa apenas AGREGAR os scores diários
-                renderHallDaFama(dailyScores);
-            }, (error) => {
-                console.error("Erro ao ouvir o ranking: ", error); 
-                document.getElementById('ranking-list').innerHTML = `<p class="text-red-400">Erro ao carregar ranking. Verifique o console e o índice composto.</p>`;
-            });
-        }
-        // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< FIM DA CORREÇÃO >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+            // 1. Cria a consulta (query)
+            // 🛑 CORREÇÃO APLICADA AQUI: Adicionando orderBy("date", "asc") como primeiro campo
+            const q = query(
+                collection(db, SCORES_COLLECTION),
+                where("date", "==", today),
+                orderBy("date", "asc"), // Necessário para compor o índice
+                orderBy("score", "desc"),   // Ordem principal: score (maior para o menor)
+                orderBy("userName", "asc")  // Ordem secundária (desempate): nome
+            );
+            
+            // 2. Listener em tempo real
+            onSnapshot(q, (snapshot) => {
+                const dailyScores = []; // Renomeado para dailyScores
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    // Todos os dados no snapshot já são do dia atual e já vêm ordenados.
+                    if (data.score !== undefined) {
+                           dailyScores.push({ id: doc.id, ...data });
+                    }
+                });
+                
+                // Agora renderHallDaFama precisa apenas AGREGAR os scores diários
+                renderHallDaFama(dailyScores);
+            }, (error) => {
+                console.error("Erro ao ouvir o ranking: ", error); 
+                // Mensagem de erro que aponta a necessidade do índice
+                document.getElementById('ranking-list').innerHTML = `<p class="text-red-400">Erro ao carregar ranking. **Verifique se o índice composto no Firestore foi criado.**</p>`;
+            });
+        }
+        // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< FIM DA CORREÇÃO >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-        function renderHallDaFama(scores) {
-            const rankingList = document.getElementById('ranking-list');
-            if (!rankingList) return;
-            rankingList.innerHTML = '';
-            
-            // 🛑 REMOÇÃO DO FILTRO MANUAL: O filtro por data já foi feito no Firestore na função loadRankingListener
-            const dailyScores = scores; 
+        function renderHallDaFama(scores) {
+            const rankingList = document.getElementById('ranking-list');
+            if (!rankingList) return;
+            rankingList.innerHTML = '';
+            
+            // 🛑 REMOÇÃO DO FILTRO MANUAL: O filtro por data já foi feito no Firestore na função loadRankingListener
+            const dailyScores = scores; 
 
-            // 1. Agrupa pelo melhor score por usuário (userId)
-            const dailyUserScoresMap = dailyScores.reduce((acc, score) => {
-                const currentBest = acc[score.userId] ? acc[score.userId].score : 0;
+            // 1. Agrupa pelo melhor score por usuário (userId)
+            const dailyUserScoresMap = dailyScores.reduce((acc, score) => {
+                const currentBest = acc[score.userId] ? acc[score.userId].score : 0;
 
-                // Salva a nova pontuação se for maior (ou se for o nome recém-enviado com pontuação igual)
-                if (score.score > currentBest || (score.userName === window.lastSubmittedName && score.score === currentBest)) {
-                    acc[score.userId] = { 
-                        score: score.score, 
-                        userName: score.userName 
-                    };
-                }
-                return acc;
-            }, {});
+                // Salva a nova pontuação se for maior (ou se for o nome recém-enviado com pontuação igual)
+                if (score.score > currentBest || (score.userId === userId && score.score >= currentBest)) {
+                    acc[score.userId] = { 
+                        score: score.score, 
+                        userName: score.userName 
+                    };
+                }
+                return acc;
+            }, {});
 
-            // 2. Converte para array e ordena novamente (garantia, mas já vem quase ordenado pela query)
-            const rankedDaily = Object.values(dailyUserScoresMap)
-                .sort((a, b) => b.score - a.score)  
-                .slice(0, 10);  
+            // 2. Converte para array e ordena novamente (garantia, mas já vem quase ordenado pela query)
+            const rankedDaily = Object.values(dailyUserScoresMap)
+                .sort((a, b) => b.score - a.score)  
+                .slice(0, 10);  
 
-            if (rankedDaily.length === 0) {
-                rankingList.innerHTML = `<p class="text-gray-400 text-center py-4">Ninguém jogou hoje ainda. Seja o primeiro!</p>`;
-                return;
-            }
+            if (rankedDaily.length === 0) {
+                rankingList.innerHTML = `<p class="text-gray-400 text-center py-4">Ninguém jogou hoje ainda. Seja o primeiro!</p>`;
+                return;
+            }
 
-            // 3. Renderiza a lista
-            rankedDaily.forEach((entry, index) => {
-                const rankClass = index === 0 ? 'bg-yellow-500/20 text-yellow-300 font-bold neon-border' : 
-                                             index === 1 ? 'bg-gray-400/20 text-gray-300' :
-                                             index === 2 ? 'bg-amber-700/20 text-amber-500' : 'bg-gray-700/20 text-gray-300';
-                
-                const isLastPlayer = (entry.userName === window.lastSubmittedName);
-                const userHighlight = isLastPlayer ? ' neon-border border-indigo-500' : '';
+            // 3. Renderiza a lista
+            rankedDaily.forEach((entry, index) => {
+                const rankClass = index === 0 ? 'bg-yellow-500/20 text-yellow-300 font-bold neon-border' : 
+                                             index === 1 ? 'bg-gray-400/20 text-gray-300' :
+                                             index === 2 ? 'bg-amber-700/20 text-amber-500' : 'bg-gray-700/20 text-gray-300';
+                
+                // CORREÇÃO: Comparar pelo userId global, não pelo lastSubmittedName
+                const isCurrentUser = entry.userId === userId; 
+                const userHighlight = isCurrentUser ? ' neon-border border-indigo-500' : '';
 
-                rankingList.innerHTML += `
-                    <li class="flex justify-between items-center p-3 rounded-lg transition duration-200 ${rankClass} ${userHighlight}">
-                        <span class="w-1/12 text-center text-xl">${index + 1}°</span>
-                        <span class="w-8/12 truncate ${isLastPlayer ? 'text-indigo-400 font-bold' : ''}">${entry.userName} ${isLastPlayer ? '(Você)' : ''}</span>
-                        <span class="w-3/12 text-right font-orbitron text-lg">${entry.score} pts</span>
-                    </li>
-                `;
-            });
-        }
+                rankingList.innerHTML += `
+                    <li class="flex justify-between items-center p-3 rounded-lg transition duration-200 ${rankClass} ${userHighlight}">
+                        <span class="w-1/12 text-center text-xl">${index + 1}°</span>
+                        <span class="w-8/12 truncate ${isCurrentUser ? 'text-indigo-400 font-bold' : ''}">${entry.userName} ${isCurrentUser ? '(Você)' : ''}</span>
+                        <span class="w-3/12 text-right font-orbitron text-lg">${entry.score} pts</span>
+                    </li>
+                `;
+            });
+        }
 
-        window.addEventListener('load', authenticate);
-    </script>
-    
-    <script>
-        // Variável global para o nome (definida na Home)
-        window.playerName = 'Jogador Anônimo';
-        window.lastSubmittedName = 'Jogador Anônimo'; // Usado para destacar o último jogador no ranking
-        
-        let isDarkMode = true;
-        let timerInterval;
-        let timeRemaining = 180; // Duração total da sessão (3 minutos)
-        let quizActive = false;
-        
-        let currentChallengeIndex = 0; // Índice da pergunta atual na lista embaralhada
-        let sessionChallenges = [];    // Lista de desafios embaralhados para a sessão
-        let currentSessionScore = 0;    // Pontuação da sessão atual
-        const SCORE_PER_QUESTION = 100;
-        const INITIAL_TIME = 180; 
+        window.addEventListener('load', authenticate);
+    </script>
+    
+    <script>
+        // Variável global para o nome (definida na Home)
+        window.playerName = 'Jogador Anônimo';
+        window.lastSubmittedName = 'Jogador Anônimo'; // Usado para destacar o último jogador no ranking
+        
+        let isDarkMode = true;
+        let timerInterval;
+        let timeRemaining = 180; // Duração total da sessão (3 minutos)
+        let quizActive = false;
+        
+        let currentChallengeIndex = 0; // Índice da pergunta atual na lista embaralhada
+        let sessionChallenges = [];    // Lista de desafios embaralhados para a sessão
+        let currentSessionScore = 0;    // Pontuação da sessão atual
+        const SCORE_PER_QUESTION = 100;
+        const INITIAL_TIME = 180; 
 
-        // Função de embaralhamento Fisher-Yates
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
-        }
+        // Função de embaralhamento Fisher-Yates
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
 
-        // Banco de Perguntas (MANTIDO)
-        const CHALLENGES = [
-            { id: 1, title: "O Enigma do Supermercado", question: "Se 4 maçãs custam R$ 8,00, e você tem R$ 15,00, quantas maçãs você pode comprar no máximo? (Responda o número de maçãs)", answer: 7 },
-            { id: 2, title: "O Código da Reunião", question: "Se a reunião começa às 9:30 e dura 45 minutos, a que horas (em minutos após a hora cheia) ela termina? (Responda apenas o minuto)", answer: 15 },
-            { id: 3, title: "A Regra dos Três Irmãos", question: "Tenho 3 filhos. O primeiro tem o dobro da idade do segundo, e o terceiro tem 5 anos. Se a soma das idades é 20, quantos anos tem o filho do meio? (Responda a idade)", answer: 5 },
-            { id: 4, title: "O Desconto da Roupa", question: "Uma camisa custa R$ 100,00. Você consegue 20% de desconto. Se você pagar com uma nota de R$ 50,00, qual será o seu troco? (Responda o valor em Reais, sem vírgulas)", answer: 30 },
-            { id: 5, title: "A Velocidade Média", question: "Você dirige por 2 horas a 60 km/h. Quantos quilômetros você percorreu? (Responda apenas o número)", answer: 120 },
-            { id: 6, title: "A Pizza Dividida", question: "Uma pizza tem 8 fatias. Se 3 amigos comem 2 fatias cada um, quantas fatias sobram? (Responda o número de fatias)", answer: 2 },
-            { id: 7, title: "O Enigma do Alfabeto", question: "Quantas vogais (A, E, I, O, U) existem na palavra 'METINS'? (Responda o número)", answer: 2 },
-            { id: 8, title: "O Tempo de Viagem", question: "Um carro viaja a 60 km/h. Quantos quilômetros ele percorre em 3 horas? (Responda o número)", answer: 180 },
-            { id: 9, title: "O Enigma dos Planetas", question: "Quantos planetas existem no nosso Sistema Solar? (Responda o número)", answer: 8 },
-            { id: 10, title: "O Enigma do Tempo", question: "Quantos minutos existem em uma hora e meia? (Responda o número)", answer: 90 },
-            { id: 11, title: "O Desafio do Triângulo", question: "Quantos lados tem um triângulo? (Responda o número)", answer: 3 },
-            { id: 12, title: "A Conta Rápida", question: "Qual é o resultado de 10 + (5 * 2)? (Responda o número)", answer: 20 },
-            { id: 13, title: "Cálculo Mental Rápido I", question: "Qual é o resultado de 15 - 8? (Responda o número)", answer: 7 },
-            { id: 14, title: "O dobro do número", question: "Qual é o dobro de 15? (Responda o número)", answer: 30 },
-            { id: 15, title: "Divisão Fácil", question: "Se você dividir 50 por 2, qual é o resultado? (Responda o número)", answer: 25 },
-            { id: 16, title: "Pares de Meias", question: "Quantos pares você pode formar com 16 meias? (Responda o número)", answer: 8 },
-            { id: 17, title: "Multiplicação Básica", question: "Quanto é 5 vezes 7? (Responda o número)", answer: 35 },
-            { id: 18, title: "Os Dias da Semana", question: "Quantos dias há em duas semanas? (Responda o número)", answer: 14 },
-            { id: 19, title: "Idade dos Irmãos", question: "Se você tem 10 anos e seu irmão é 2 anos mais velho, quantos anos ele tem? (Responda o número)", answer: 12 },
-            { id: 20, title: "O Peso do Pão", question: "Se um padeiro faz 50 pães em uma hora, quantos pães ele faz em meia hora? (Responda o número)", answer: 25 },
-            { id: 21, title: "A Diferença de Idade", question: "João tem 30 anos e Maria tem 22. Qual é a diferença de idade entre eles? (Responda o número)", answer: 8 },
-            { id: 22, title: "Múltiplos de 5", question: "Qual é o próximo múltiplo de 5 depois de 35? (Responda o número)", answer: 40 },
-            { id: 23, title: "As Quatro Estações", question: "Quantas estações existem no ano? (Responda o número)", answer: 4 },
-            { id: 24, title: "Ordem das Operações", question: "Qual o resultado de 2 * (4 + 6)? (Responda o número)", answer: 20 },
-            { id: 25, title: "Metade do Tempo", question: "Metade de 60 minutos é igual a quantos minutos? (Responda o número)", answer: 30 }
-        ];
-        
-        /**
-         * Lógica de navegação: Oculta todas as views e mostra a view selecionada.
-         */
-        window.navigate = (viewId) => {
-            document.querySelectorAll('.view-content').forEach(view => {
-                view.classList.add('hidden');
-                view.classList.remove('opacity-100');
-            });
-            
-            const targetView = document.getElementById(`view-${viewId}`);
-            if (targetView) {
-                targetView.classList.remove('hidden');
-                setTimeout(() => targetView.classList.add('opacity-100'), 10);
-            }
+        // Banco de Perguntas (MANTIDO)
+        const CHALLENGES = [
+            { id: 1, title: "O Enigma do Supermercado", question: "Se 4 maçãs custam R$ 8,00, e você tem R$ 15,00, quantas maçãs você pode comprar no máximo? (Responda o número de maçãs)", answer: 7 },
+            { id: 2, title: "O Código da Reunião", question: "Se a reunião começa às 9:30 e dura 45 minutos, a que horas (em minutos após a hora cheia) ela termina? (Responda apenas o minuto)", answer: 15 },
+            { id: 3, title: "A Regra dos Três Irmãos", question: "Tenho 3 filhos. O primeiro tem o dobro da idade do segundo, e o terceiro tem 5 anos. Se a soma das idades é 20, quantos anos tem o filho do meio? (Responda a idade)", answer: 5 },
+            { id: 4, title: "O Desconto da Roupa", question: "Uma camisa custa R$ 100,00. Você consegue 20% de desconto. Se você pagar com uma nota de R$ 50,00, qual será o seu troco? (Responda o valor em Reais, sem vírgulas)", answer: 30 },
+            { id: 5, title: "A Velocidade Média", question: "Você dirige por 2 horas a 60 km/h. Quantos quilômetros você percorreu? (Responda apenas o número)", answer: 120 },
+            { id: 6, title: "A Pizza Dividida", question: "Uma pizza tem 8 fatias. Se 3 amigos comem 2 fatias cada um, quantas fatias sobram? (Responda o número de fatias)", answer: 2 },
+            { id: 7, title: "O Enigma do Alfabeto", question: "Quantas vogais (A, E, I, O, U) existem na palavra 'METINS'? (Responda o número)", answer: 2 },
+            { id: 8, title: "O Tempo de Viagem", question: "Um carro viaja a 60 km/h. Quantos quilômetros ele percorre em 3 horas? (Responda o número)", answer: 180 },
+            { id: 9, title: "O Enigma dos Planetas", question: "Quantos planetas existem no nosso Sistema Solar? (Responda o número)", answer: 8 },
+            { id: 10, title: "O Enigma do Tempo", question: "Quantos minutos existem em uma hora e meia? (Responda o número)", answer: 90 },
+            { id: 11, title: "O Desafio do Triângulo", question: "Quantos lados tem um triângulo? (Responda o número)", answer: 3 },
+            { id: 12, title: "A Conta Rápida", question: "Qual é o resultado de 10 + (5 * 2)? (Responda o número)", answer: 20 },
+            { id: 13, title: "Cálculo Mental Rápido I", question: "Qual é o resultado de 15 - 8? (Responda o número)", answer: 7 },
+            { id: 14, title: "O dobro do número", question: "Qual é o dobro de 15? (Responda o número)", answer: 30 },
+            { id: 15, title: "Divisão Fácil", question: "Se você dividir 50 por 2, qual é o resultado? (Responda o número)", answer: 25 },
+            { id: 16, title: "Pares de Meias", question: "Quantos pares você pode formar com 16 meias? (Responda o número)", answer: 8 },
+            { id: 17, title: "Multiplicação Básica", question: "Quanto é 5 vezes 7? (Responda o número)", answer: 35 },
+            { id: 18, title: "Os Dias da Semana", question: "Quantos dias há em duas semanas? (Responda o número)", answer: 14 },
+            { id: 19, title: "Idade dos Irmãos", question: "Se você tem 10 anos e seu irmão é 2 anos mais velho, quantos anos ele tem? (Responda o número)", answer: 12 },
+            { id: 20, title: "O Peso do Pão", question: "Se um padeiro faz 50 pães em uma hora, quantos pães ele faz em meia hora? (Responda o número)", answer: 25 },
+            { id: 21, title: "A Diferença de Idade", question: "João tem 30 anos e Maria tem 22. Qual é a diferença de idade entre eles? (Responda o número)", answer: 8 },
+            { id: 22, title: "Múltiplos de 5", question: "Qual é o próximo múltiplo de 5 depois de 35? (Responda o número)", answer: 40 },
+            { id: 23, title: "As Quatro Estações", question: "Quantas estações existem no ano? (Responda o número)", answer: 4 },
+            { id: 24, title: "Ordem das Operações", question: "Qual o resultado de 2 * (4 + 6)? (Responda o número)", answer: 20 },
+            { id: 25, title: "Metade do Tempo", question: "Metade de 60 minutos é igual a quantos minutos? (Responda o número)", answer: 30 }
+        ];
+        
+        /**
+         * Lógica de navegação: Oculta todas as views e mostra a view selecionada.
+         */
+        window.navigate = (viewId) => {
+            document.querySelectorAll('.view-content').forEach(view => {
+                view.classList.add('hidden');
+                view.classList.remove('opacity-100');
+            });
+            
+            const targetView = document.getElementById(`view-${viewId}`);
+            if (targetView) {
+                targetView.classList.remove('hidden');
+                setTimeout(() => targetView.classList.add('opacity-100'), 10);
+            }
 
-            // Ações específicas ao navegar
-            if (viewId === 'desafio') {
-                if (!quizActive) {
-                    startQuizSession();
-                }
-            } else {
-                stopTimer(); // Para o timer se sair do desafio
-            }
-        };
+            // Ações específicas ao navegar
+            if (viewId === 'desafio') {
+                if (!quizActive) {
+                    startQuizSession();
+                }
+            } else {
+                stopTimer(); // Para o timer se sair do desafio
+            }
+        };
 
-        /**
-         * 1. Valida o nome na Home View.
-         * 2. Se for válido, armazena globalmente e navega para o Desafio.
-         */
-        window.startChallengeFromHome = () => {
-            const nameInput = document.getElementById('home-player-name');
-            const feedback = document.getElementById('name-feedback');
-            const nameValue = nameInput.value.trim();
+        /**
+         * 1. Valida o nome na Home View.
+         * 2. Se for válido, armazena globalmente e navega para o Desafio.
+         */
+        window.startChallengeFromHome = () => {
+            const nameInput = document.getElementById('home-player-name');
+            const feedback = document.getElementById('name-feedback');
+            const nameValue = nameInput.value.trim();
 
-            if (nameValue.length < 2) {
-                feedback.textContent = "⚠️ Por favor, digite seu nome ou apelido para continuar.";
-                nameInput.classList.add('animate-pulse', 'border-red-500');
-                setTimeout(() => {
-                    nameInput.classList.remove('animate-pulse', 'border-red-500');
-                }, 1000);
-                return;
-            }
-            
-            feedback.textContent = "";
-            window.playerName = nameValue; // Armazena o nome globalmente
-            navigate('desafio');
-        };
+            if (nameValue.length < 2) {
+                feedback.textContent = "⚠️ Por favor, digite seu nome ou apelido para continuar.";
+                nameInput.classList.add('animate-pulse', 'border-red-500');
+                setTimeout(() => {
+                    nameInput.classList.remove('animate-pulse', 'border-red-500');
+                }, 1000);
+                return;
+            }
+            
+            feedback.textContent = "";
+            window.playerName = nameValue; // Armazena o nome globalmente
+            navigate('desafio');
+        };
 
-        /**
-         * Inicia a SESSÃO de Quiz: Reseta o estado, o timer e EMBARALHA as perguntas.
-         */
-        function startQuizSession() {
-            // 1. Cria e embaralha a lista de desafios para a sessão
-            sessionChallenges = shuffleArray([...CHALLENGES]);
-            currentChallengeIndex = 0; // Começa sempre do primeiro desafio embaralhado
-            quizActive = true;
-            timeRemaining = INITIAL_TIME;
-            currentSessionScore = 0;
-            
-            // 2. Reseta o estado da UI e feedback
-            document.getElementById('resposta').value = '';
-            document.getElementById('quiz-area').classList.remove('hidden');
-            document.getElementById('quiz-completed-message').classList.add('hidden');
-            document.getElementById('next-challenge-area').classList.add('hidden');
-            
-            // 3. Carrega a primeira pergunta do array embaralhado
-            loadNewQuestion();
-            
-            // 4. Inicia o Timer
-            updateTimerDisplay(); 
-            updateScoreDisplay();
-            startTimer();
-        }
-        
-        /**
-         * Carrega a próxima pergunta da lista embaralhada da sessão.
-         */
-        function loadNewQuestion() {
-            // 1. Verifica se todos os desafios foram concluídos
-            if (currentChallengeIndex >= sessionChallenges.length) {
-                endQuizSession("Parabéns! Você é uma capivarinha inteligente!", false);
-                return;
-            }
-            
-            // 2. Pega o desafio da posição atual no array embaralhado
-            const challenge = sessionChallenges[currentChallengeIndex];
-            
-            // Atualiza o conteúdo do desafio
-            document.getElementById('challenge-title').textContent = challenge.title;
-            document.getElementById('challenge-question').innerHTML = `**Enigma:** ${challenge.question}`;
-            
-            // Limpa o campo de resposta
-            document.getElementById('resposta').value = '';
-            
-            // Feedback de acerto (se houver)
-            const feedbackEl = document.getElementById('question-feedback');
-            feedbackEl.textContent = "Nova pergunta!";
-            feedbackEl.classList.remove('text-red-400');
-            feedbackEl.classList.add('text-green-400');
-            setTimeout(() => { feedbackEl.textContent = ""; }, 1500);
-        }
+        /**
+         * Inicia a SESSÃO de Quiz: Reseta o estado, o timer e EMBARALHA as perguntas.
+         */
+        function startQuizSession() {
+            // 1. Cria e embaralha a lista de desafios para a sessão
+            sessionChallenges = shuffleArray([...CHALLENGES]);
+            currentChallengeIndex = 0; // Começa sempre do primeiro desafio embaralhado
+            quizActive = true;
+            timeRemaining = INITIAL_TIME;
+            currentSessionScore = 0;
+            
+            // 2. Reseta o estado da UI e feedback
+            document.getElementById('resposta').value = '';
+            document.getElementById('quiz-area').classList.remove('hidden');
+            document.getElementById('quiz-completed-message').classList.add('hidden');
+            document.getElementById('next-challenge-area').classList.add('hidden');
+            
+            // 3. Carrega a primeira pergunta do array embaralhado
+            loadNewQuestion();
+            
+            // 4. Inicia o Timer
+            updateTimerDisplay(); 
+            updateScoreDisplay();
+            startTimer();
+        }
+        
+        /**
+         * Carrega a próxima pergunta da lista embaralhada da sessão.
+         */
+        function loadNewQuestion() {
+            // 1. Verifica se todos os desafios foram concluídos
+            if (currentChallengeIndex >= sessionChallenges.length) {
+                endQuizSession("Parabéns! Você é uma capivarinha inteligente!", false);
+                return;
+            }
+            
+            // 2. Pega o desafio da posição atual no array embaralhado
+            const challenge = sessionChallenges[currentChallengeIndex];
+            
+            // Atualiza o conteúdo do desafio
+            document.getElementById('challenge-title').textContent = challenge.title;
+            document.getElementById('challenge-question').innerHTML = `**Enigma:** ${challenge.question}`;
+            
+            // Limpa o campo de resposta
+            document.getElementById('resposta').value = '';
+            
+            // Feedback de acerto (se houver)
+            const feedbackEl = document.getElementById('question-feedback');
+            feedbackEl.textContent = "Nova pergunta!";
+            feedbackEl.classList.remove('text-red-400');
+            feedbackEl.classList.add('text-green-400');
+            setTimeout(() => { feedbackEl.textContent = ""; }, 1500);
+        }
 
-        /**
-         * Reseta o jogo, autentica novo jogador e força a volta para a Home.
-         */
-        window.nextChallenge = async () => {
-            // Re-autentica o usuário para gerar um novo ID (simulando um novo jogador)
-            const newAuth = window.auth; 
-            if (newAuth) {
-                try {
-                    await newAuth.signInAnonymously(newAuth); 
-                    console.log("Novo jogador anônimo autenticado (se o ambiente permitir).");
-                } catch (error) {
-                    console.error("Erro ao autenticar novo jogador:", error);
-                }
-            }
-            
-            // Limpa o nome para o próximo jogador digitar o seu
-            document.getElementById('home-player-name').value = '';
-            window.playerName = 'Jogador Anônimo'; // Limpa o nome interno também
-            window.lastSubmittedName = 'Jogador Anônimo'; // Limpa o destaque de ranking
-            
-            // Zera o quiz
-            quizActive = false; 
-            
-            // Vai para a Home para que o próximo jogador insira seu nome
-            navigate('home');
-        }
+        /**
+         * Reseta o jogo, autentica novo jogador e força a volta para a Home.
+         */
+        window.nextChallenge = async () => {
+            // Re-autentica o usuário para gerar um novo ID (simulando um novo jogador)
+            const newAuth = window.auth; 
+            if (newAuth) {
+                try {
+                    await newAuth.signInAnonymously(newAuth); 
+                    console.log("Novo jogador anônimo autenticado (se o ambiente permitir).");
+                } catch (error) {
+                    console.error("Erro ao autenticar novo jogador:", error);
+                }
+            }
+            
+            // Limpa o nome para o próximo jogador digitar o seu
+            document.getElementById('home-player-name').value = '';
+            window.playerName = 'Jogador Anônimo'; // Limpa o nome interno também
+            window.lastSubmittedName = 'Jogador Anônimo'; // Limpa o destaque de ranking
+            
+            // Zera o quiz
+            quizActive = false; 
+            
+            // Vai para a Home para que o próximo jogador insira seu nome
+            navigate('home');
+        }
 
-        /**
-         * Inicia o Timer Regressivo da SESSÃO.
-         */
-        function startTimer() {
-            stopTimer();
-            timerInterval = setInterval(() => {
-                if (timeRemaining > 0 && quizActive) {
-                    timeRemaining--;
-                    updateTimerDisplay();
-                } else if (quizActive) {
-                    // Tempo esgotado
-                    endQuizSession("O tempo acabou!", false);
-                }
-            }, 1000);
-        }
-        
-        /**
-         * Para o Timer Regressivo.
-         */
-        function stopTimer() {
-            clearInterval(timerInterval);
-        }
+        /**
+         * Inicia o Timer Regressivo da SESSÃO.
+         */
+        function startTimer() {
+            stopTimer();
+            timerInterval = setInterval(() => {
+                if (timeRemaining > 0 && quizActive) {
+                    timeRemaining--;
+                    updateTimerDisplay();
+                } else if (quizActive) {
+                    // Tempo esgotado
+                    endQuizSession("O tempo acabou!", false);
+                }
+            }, 1000);
+        }
+        
+        /**
+         * Para o Timer Regressivo.
+         */
+        function stopTimer() {
+            clearInterval(timerInterval);
+        }
 
-        /**
-         * Atualiza a exibição do Timer.
-         */
-        function updateTimerDisplay() {
-            const minutes = String(Math.floor(timeRemaining / 60)).padStart(2, '0');
-            const seconds = String(timeRemaining % 60).padStart(2, '0');
-            document.getElementById('timer').textContent = `${minutes}:${seconds}`;
-        }
-        
-        /**
-         * Atualiza a exibição da Pontuação.
-         */
-        function updateScoreDisplay() {
-            document.getElementById('score').textContent = `${currentSessionScore}`;
-        }
+        /**
+         * Atualiza a exibição do Timer.
+         */
+        function updateTimerDisplay() {
+            const minutes = String(Math.floor(timeRemaining / 60)).padStart(2, '0');
+            const seconds = String(timeRemaining % 60).padStart(2, '0');
+            document.getElementById('timer').textContent = `${minutes}:${seconds}`;
+        }
+        
+        /**
+         * Atualiza a exibição da Pontuação.
+         */
+        function updateScoreDisplay() {
+            document.getElementById('score').textContent = `${currentSessionScore}`;
+        }
 
-        /**
-         * Envia a resposta da pergunta ATUAL.
-         */
-        window.submitQuiz = () => {
-            if (!quizActive) return;
+        /**
+         * Envia a resposta da pergunta ATUAL.
+         */
+        window.submitQuiz = () => {
+            if (!quizActive) return;
 
-            const challenge = sessionChallenges[currentChallengeIndex]; // Pega o desafio da lista embaralhada
-            const answerInput = document.getElementById('resposta');
-            // Remove espaços e converte para número
-            const userResponse = parseInt(answerInput.value.trim()); 
-            const feedbackEl = document.getElementById('question-feedback');
+            const challenge = sessionChallenges[currentChallengeIndex]; // Pega o desafio da lista embaralhada
+            const answerInput = document.getElementById('resposta');
+            // Remove espaços e converte para número
+            const userResponse = parseInt(answerInput.value.trim()); 
+            const feedbackEl = document.getElementById('question-feedback');
 
-            if (userResponse === challenge.answer) {
-                // ACERTOU
-                currentSessionScore += SCORE_PER_QUESTION;
-                updateScoreDisplay();
-                
-                // Avança para a próxima pergunta e a carrega
-                currentChallengeIndex++; 
-                loadNewQuestion(); 
-            } else {
-                // ERROU
-                feedbackEl.textContent = `Resposta incorreta. A resposta certa era: ${challenge.answer}`;
-                feedbackEl.classList.remove('text-green-400');
-                feedbackEl.classList.add('text-red-400');
-                
-                // Termina o jogo
-                endQuizSession("Você errou!", true);
-            }
-        };
+            if (userResponse === challenge.answer) {
+                // ACERTOU
+                currentSessionScore += SCORE_PER_QUESTION;
+                updateScoreDisplay();
+                
+                // Avança para a próxima pergunta e a carrega
+                currentChallengeIndex++; 
+                loadNewQuestion(); 
+            } else {
+                // ERROU
+                feedbackEl.textContent = `Resposta incorreta. A resposta certa era: ${challenge.answer}`;
+                feedbackEl.classList.remove('text-green-400');
+                feedbackEl.classList.add('text-red-400');
+                
+                // Termina o jogo
+                endQuizSession("Você errou!", true);
+            }
+        };
 
-        /**
-         * Finaliza a SESSÃO de Quiz e mostra o resultado.
-         */
-        function endQuizSession(reasonText, isMistake) {
-            stopTimer();
-            quizActive = false;
-            
-            // Salva a pontuação final (se for maior que 0)
-            if (currentSessionScore > 0 && window.saveScore) {
-                window.saveScore(currentSessionScore);
-            }
-            
-            // Esconde a área do quiz
-            document.getElementById('quiz-area').classList.add('hidden');
-            
-            // Mostra a mensagem de conclusão
-            const completedMsg = document.getElementById('quiz-completed-message');
-            completedMsg.classList.remove('hidden');
-            document.getElementById('next-challenge-area').classList.remove('hidden'); // Exibe o botão Próximo Jogador
-            
-            document.getElementById('final-score-text').innerHTML = `
-                <span class="text-2xl font-bold">${reasonText}</span><br>
-                Pontuação Final: ${currentSessionScore} Pontos!
-            `;
-            
-            if (isMistake) {
-                completedMsg.classList.remove('bg-green-500/20', 'text-green-300');
-                completedMsg.classList.add('bg-red-500/20', 'text-red-300');
-            } else {
-                // Se o tempo acabou ou todas as perguntas foram feitas
-                completedMsg.classList.remove('bg-red-500/20', 'text-red-300');
-                completedMsg.classList.add('bg-green-500/20', 'text-green-300');
-            }
-            
-            // Vai para o Hall da Fama para mostrar o ranking em tempo real (após 3 segundos de feedback)
-            setTimeout(() => {
-                navigate('hall-da-fama');
-                
-                // Retorna automaticamente para a Home após 5 segundos no Hall da Fama (Ciclo de Próximo Jogador)
-                setTimeout(() => {
-                    window.nextChallenge(); // Reseta e navega para a Home
-                }, 5000); 
+        /**
+         * Finaliza a SESSÃO de Quiz e mostra o resultado.
+         */
+        function endQuizSession(reasonText, isMistake) {
+            stopTimer();
+            quizActive = false;
+            
+            // Salva a pontuação final (se for maior que 0)
+            if (currentSessionScore > 0 && window.saveScore) {
+                window.saveScore(currentSessionScore);
+            }
+            
+            // Esconde a área do quiz
+            document.getElementById('quiz-area').classList.add('hidden');
+            
+            // Mostra a mensagem de conclusão
+            const completedMsg = document.getElementById('quiz-completed-message');
+            completedMsg.classList.remove('hidden');
+            document.getElementById('next-challenge-area').classList.remove('hidden'); // Exibe o botão Próximo Jogador
+            
+            document.getElementById('final-score-text').innerHTML = `
+                <span class="text-2xl font-bold">${reasonText}</span><br>
+                Pontuação Final: ${currentSessionScore} Pontos!
+            `;
+            
+            if (isMistake) {
+                completedMsg.classList.remove('bg-green-500/20', 'text-green-300');
+                completedMsg.classList.add('bg-red-500/20', 'text-red-300');
+            } else {
+                // Se o tempo acabou ou todas as perguntas foram feitas
+                completedMsg.classList.remove('bg-red-500/20', 'text-red-300');
+                completedMsg.classList.add('bg-green-500/20', 'text-green-300');
+            }
+            
+            // Vai para o Hall da Fama para mostrar o ranking em tempo real (após 3 segundos de feedback)
+            setTimeout(() => {
+                navigate('hall-da-fama');
+                
+                // Retorna automaticamente para a Home após 5 segundos no Hall da Fama (Ciclo de Próximo Jogador)
+                setTimeout(() => {
+                    window.nextChallenge(); // Reseta e navega para a Home
+                }, 5000); 
 
-            }, 3000);
-        }
-        
-        /**
-         * Configura os event listeners DOM que precisam esperar o carregamento.
-         */
-        function setupListeners() {
-            document.getElementById('mode-toggle').addEventListener('click', () => {
-                isDarkMode = !isDarkMode;
-                const body = document.body;
-                const sunIcon = document.getElementById('sun-icon');
-                
-                if (isDarkMode) {
-                    body.classList.remove('light-mode');
-                    body.classList.add('dark-mode');
-                    sunIcon.classList.remove('text-gray-900');
-                    sunIcon.classList.add('text-yellow-400');
-                    sunIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />`;
+            }, 3000);
+        }
+        
+        /**
+         * Configura os event listeners DOM que precisam esperar o carregamento.
+         */
+        function setupListeners() {
+            document.getElementById('mode-toggle').addEventListener('click', () => {
+                isDarkMode = !isDarkMode;
+                const body = document.body;
+                const sunIcon = document.getElementById('sun-icon');
+                
+                if (isDarkMode) {
+                    body.classList.remove('light-mode');
+                    body.classList.add('dark-mode');
+                    sunIcon.classList.remove('text-gray-900');
+                    sunIcon.classList.add('text-yellow-400');
+                    sunIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />`;
 
-                } else {
-                    body.classList.remove('dark-mode');
-                    body.classList.add('light-mode');
-                    sunIcon.classList.remove('text-yellow-400');
-                    sunIcon.classList.add('text-gray-900');
-                    sunIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />`;
-                }
-            });
-            
-            // Listener do menu mobile
-            document.querySelector('.md\\:hidden button[onclick="toggleMobileMenu()"]').addEventListener('click', toggleMobileMenu);
-        }
+                } else {
+                    body.classList.remove('dark-mode');
+                    body.classList.add('light-mode');
+                    sunIcon.classList.remove('text-yellow-400');
+                    sunIcon.classList.add('text-gray-900');
+                    sunIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />`;
+                }
+            });
+            
+            // Listener do menu mobile
+            document.querySelector('.md\\:hidden button[onclick="toggleMobileMenu()"]').addEventListener('click', toggleMobileMenu);
+        }
 
-        /**
-         * Alterna a visibilidade do menu mobile.
-         */
-        function toggleMobileMenu() {
-            const menu = document.getElementById('mobile-menu');
-            menu.classList.toggle('hidden');
-        }
+        /**
+         * Alterna a visibilidade do menu mobile.
+         */
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
 
-        // Navegação inicial para a Home e configuração de listeners
-        window.onload = () => {
-            setupListeners(); // Adiciona listeners após o DOM carregar
-            navigate('home');
-        };
+        // Navegação inicial para a Home e configuração de listeners
+        window.onload = () => {
+            setupListeners(); // Adiciona listeners após o DOM carregar
+            navigate('home');
+        };
 
-    </script>
-    
-    <nav class="sticky top-0 z-50 bg-gray-800 dark-mode:bg-gray-800 shadow-xl">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <div class="flex items-center">
-                    <span class="text-2xl font-extrabold font-orbitron text-indigo-400 cursor-pointer" onclick="navigate('home')">METINS</span>
-                </div>
-                <div class="hidden md:block">
-                    <div class="ml-10 flex items-baseline space-x-4">
-                        <button onclick="navigate('home')" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Home</button>
-                        <button onclick="navigate('desafio')" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Desafio da Semana</button>
-                        <button onclick="navigate('hall-da-fama')" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Hall da Fama</button>
-                        <button onclick="navigate('sobre')" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Sobre</button>
-                    </div>
-                </div>
-                
-                <div class="flex items-center">
-                    <button id="mode-toggle" class="p-2 rounded-full hover:bg-gray-700 transition duration-150 mr-4">
-                        <svg id="sun-icon" class="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
-                    </button>
-                    <div class="md:hidden">
-                        <button onclick="toggleMobileMenu()" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
-                            <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+    </script>
+    
+    <nav class="sticky top-0 z-50 bg-gray-800 dark-mode:bg-gray-800 shadow-xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-2xl font-extrabold font-orbitron text-indigo-400 cursor-pointer" onclick="navigate('home')">METINS</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <button onclick="navigate('home')" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Home</button>
+                        <button onclick="navigate('desafio')" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Desafio da Semana</button>
+                        <button onclick="navigate('hall-da-fama')" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Hall da Fama</button>
+                        <button onclick="navigate('sobre')" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Sobre</button>
+                    </div>
+                </div>
+                
+                <div class="flex items-center">
+                    <button id="mode-toggle" class="p-2 rounded-full hover:bg-gray-700 transition duration-150 mr-4">
+                        <svg id="sun-icon" class="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                    </button>
+                    <div class="md:hidden">
+                        <button onclick="toggleMobileMenu()" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
+                            <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        <div class="md:hidden hidden" id="mobile-menu">
-            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                <button onclick="navigate('home'); toggleMobileMenu();" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium w-full text-left">Home</button>
-                <button onclick="navigate('desafio'); toggleMobileMenu();" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium w-full text-left">Desafio da Semana</button>
-                <button onclick="navigate('hall-da-fama'); toggleMobileMenu();" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium w-full text-left">Hall da Fama</button>
-                <button onclick="navigate('sobre'); toggleMobileMenu();" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium w-full text-left">Sobre</button>
-            </div>
-        </div>
-    </nav>
+        <div class="md:hidden hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <button onclick="navigate('home'); toggleMobileMenu();" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium w-full text-left">Home</button>
+                <button onclick="navigate('desafio'); toggleMobileMenu();" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium w-full text-left">Desafio da Semana</button>
+                <button onclick="navigate('hall-da-fama'); toggleMobileMenu();" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium w-full text-left">Hall da Fama</button>
+                <button onclick="navigate('sobre'); toggleMobileMenu();" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium w-full text-left">Sobre</button>
+            </div>
+        </div>
+    </nav>
 
-    <main class="py-10">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            
-            <div id="view-home" class="view-content transition duration-500 opacity-0 px-4">
-                <div class="card p-8 rounded-xl shadow-2xl">
-                    <h1 class="text-4xl font-extrabold text-indigo-400 mb-4 font-orbitron">Bem-vindo(a) ao METINS!</h1>
-                    <p class="text-gray-400 mb-6">Teste sua velocidade de raciocínio e concorra ao Hall da Fama diário.</p>
-                    
-                    <h2 class="text-xl font-bold mb-4 text-yellow-400">Entre para Começar</h2>
-                    <div class="mb-4">
-                        <label for="home-player-name" class="block text-sm font-medium text-gray-300">Seu Nome/Apelido</label>
-                        <input type="text" id="home-player-name" placeholder="Ex: Capivarinha Mágica" class="mt-1 block w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-yellow-500 focus:border-yellow-500 name-focus">
-                        <p id="name-feedback" class="text-red-400 text-sm mt-1"></p>
-                    </div>
-                    <button onclick="startChallengeFromHome()" class="btn-primary w-full py-3 rounded-md text-lg font-bold hover:opacity-90 transition duration-150">
-                        🚀 Começar Desafio!
-                    </button>
-                    
-                    <p id="user-id" class="text-xs text-gray-500 mt-4 text-right">ID: Desconhecido</p>
-                </div>
-            </div>
+    <main class="py-10">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            
+            <div id="view-home" class="view-content transition duration-500 opacity-0 px-4">
+                <div class="card p-8 rounded-xl shadow-2xl">
+                    <h1 class="text-4xl font-extrabold text-indigo-400 mb-4 font-orbitron">Bem-vindo(a) ao METINS!</h1>
+                    <p class="text-gray-400 mb-6">Teste sua velocidade de pensamento e entre no Hall da Fama diário.</p>
+                    
+                    <div class="mt-8">
+                        <label for="home-player-name" class="block text-sm font-medium text-gray-300 mb-2">Digite seu Nome ou Apelido</label>
+                        <input type="text" id="home-player-name" placeholder="Ex: Capivara Veloz" class="w-full p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-700 border-gray-600 text-white name-focus" onkeydown="if(event.key === 'Enter') startChallengeFromHome()">
+                        <p id="name-feedback" class="text-sm text-red-500 mt-2 h-4"></p>
+                    </div>
+                    
+                    <button onclick="startChallengeFromHome()" class="btn-primary w-full mt-6 py-3 px-4 rounded-lg font-bold text-lg hover:opacity-90 transition duration-150">
+                        Começar o Desafio 🚀
+                    </button>
+                </div>
+            </div>
 
-            <div id="view-desafio" class="view-content hidden transition duration-500 opacity-0 px-4">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="md:col-span-1">
-                        <div class="card p-6 rounded-xl shadow-xl sticky top-20">
-                            <h2 class="text-xl font-bold mb-4 text-indigo-400">Status do Desafio</h2>
-                            
-                            <div class="mb-4 p-4 bg-gray-700/50 rounded-lg text-center">
-                                <p class="text-gray-400 text-sm">Tempo Restante</p>
-                                <div id="timer" class="timer-glow text-5xl font-extrabold text-indigo-400 mt-1">03:00</div>
-                            </div>
+            <div id="view-desafio" class="view-content hidden transition duration-500 opacity-0 px-4">
+                <div class="card p-6 rounded-xl shadow-2xl space-y-4">
+                    
+                                        <div class="flex justify-between items-center mb-6">
+                        <div class="text-left">
+                            <p class="text-sm text-gray-400">Pontuação:</p>
+                            <span id="score" class="text-3xl font-extrabold text-green-400 font-orbitron">0</span>
+                        </div>
+                        <div class="text-center">
+                            <p id="user-id" class="text-xs text-gray-500">ID: ...</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm text-gray-400">Tempo Restante:</p>
+                            <span id="timer" class="text-3xl font-extrabold text-indigo-400 timer-glow">03:00</span>
+                        </div>
+                    </div>
+                    
+                                        <div id="quiz-area">
+                        <h2 id="challenge-title" class="text-2xl font-bold text-indigo-300 mb-3">Carregando Desafio...</h2>
+                        <p id="challenge-question" class="text-xl text-gray-200 mb-5">Preparando a pergunta. Aguarde.</p>
 
-                            <div class="mb-4 p-4 bg-gray-700/50 rounded-lg text-center">
-                                <p class="text-gray-400 text-sm">Pontuação Atual</p>
-                                <div id="score" class="timer-glow text-4xl font-extrabold text-yellow-400 mt-1">0</div>
-                            </div>
+                        <label for="resposta" class="block text-lg font-medium text-gray-300 mb-2">Sua Resposta (apenas o número):</label>
+                        <input type="number" id="resposta" class="w-full p-4 text-2xl border-2 rounded-lg text-center focus:ring-green-500 focus:border-green-500 bg-gray-700 border-gray-600 text-white" onkeydown="if(event.key === 'Enter') submitQuiz()" required>
 
-                            <p class="text-sm text-gray-500 mt-4 text-center">Responda corretamente para aumentar seu score. Um erro ou o tempo esgotado encerra a sessão!</p>
-                        </div>
-                    </div>
+                        <p id="question-feedback" class="text-center text-green-400 font-semibold mt-3 h-6"></p>
 
-                    <div class="md:col-span-2">
-                        <div id="quiz-completed-message" class="hidden card p-6 rounded-xl shadow-xl text-center mb-6 bg-red-500/20 text-red-300">
-                            <h3 id="final-score-text" class="text-xl font-bold mb-4"></h3>
-                        </div>
-                        
-                        <div id="quiz-area" class="card p-8 rounded-xl shadow-xl">
-                            <h2 id="challenge-title" class="text-2xl font-bold mb-4 text-indigo-400">Título do Enigma</h2>
-                            <p id="challenge-question" class="text-xl text-gray-300 mb-6 font-medium">**Enigma:** Pergunta aqui...</p>
-                            
-                            <div class="mb-4">
-                                <label for="resposta" class="block text-sm font-medium text-gray-300">Sua Resposta (Apenas o número)</label>
-                                <input type="number" id="resposta" placeholder="Digite sua resposta" class="mt-1 block w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-green-500 focus:border-green-500" onkeydown="if(event.key === 'Enter') submitQuiz()">
-                                <p id="question-feedback" class="text-green-400 text-sm mt-2 font-bold">Nova pergunta!</p>
-                            </div>
-                            
-                            <button onclick="submitQuiz()" class="btn-primary w-full py-3 rounded-md text-lg font-bold hover:opacity-90 transition duration-150 mt-4">
-                                Enviar Resposta
-                            </button>
-                        </div>
+                        <button onclick="submitQuiz()" class="btn-primary w-full mt-6 py-4 px-4 rounded-lg font-bold text-xl hover:opacity-90 transition duration-150">
+                            Enviar Resposta
+                        </button>
+                    </div>
+                    
+                                        <div id="quiz-completed-message" class="hidden text-center p-8 rounded-xl mt-6 border border-current">
+                        <p id="final-score-text" class="text-xl font-medium"></p>
+                    </div>
+                    
+                                        <div id="next-challenge-area" class="mt-4 flex justify-center hidden">
+                        <button onclick="navigate('hall-da-fama')" class="text-indigo-400 hover:text-indigo-300 font-semibold text-sm">
+                            Ir para Hall da Fama agora >
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="view-hall-da-fama" class="view-content hidden transition duration-500 opacity-0 px-4">
+                <div class="card p-8 rounded-xl shadow-2xl">
+                    <h2 class="text-3xl font-extrabold text-yellow-400 mb-6 font-orbitron text-center">🏆 Hall da Fama Diário</h2>
+                    
+                    <div class="flex justify-between items-center px-3 py-2 border-b border-gray-600 mb-4 font-bold text-gray-300">
+                        <span class="w-1/12 text-center">#</span>
+                        <span class="w-8/12">Nome</span>
+                        <span class="w-3/12 text-right">Pontos</span>
+                    </div>
+                    
+                    <ul id="ranking-list" class="space-y-3">
+                        <li class="text-gray-400 text-center py-4">Carregando ranking diário...</li>
+                    </ul>
+                </div>
+                
+                <div class="mt-8 text-center">
+                    <button onclick="window.nextChallenge()" class="btn-primary py-3 px-6 rounded-lg font-bold hover:opacity-90 transition duration-150">
+                        Novo Desafio (Próximo Jogador) ➡️
+                    </button>
+                </div>
+            </div>
 
-                        <div id="next-challenge-area" class="hidden mt-6 text-center">
-                            <button onclick="window.nextChallenge()" class="bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-md font-bold transition duration-150">
-                                Próximo Jogador / Novo Desafio
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="view-hall-da-fama" class="view-content hidden transition duration-500 opacity-0 px-4">
-                <div class="card p-8 rounded-xl shadow-2xl">
-                    <h1 class="text-4xl font-extrabold text-yellow-400 mb-4 font-orbitron text-center">🏆 Hall da Fama Diário</h1>
-                    <p class="text-gray-400 text-center mb-6">Os 10 melhores resultados de hoje!</p>
-                    
-                    <ul id="ranking-list" class="space-y-3">
-                        <p class="text-gray-400 text-center py-4">Carregando ranking...</p>
-                    </ul>
-
-                    <p class="text-xs text-gray-500 mt-6 text-center">O ranking é atualizado em tempo real. Sua melhor pontuação do dia é exibida.</p>
-                </div>
-            </div>
-            
-            <div id="view-sobre" class="view-content hidden transition duration-500 opacity-0 px-4">
-                <div class="card p-8 rounded-xl shadow-2xl">
-                    <h1 class="text-4xl font-extrabold text-indigo-400 mb-4">Sobre o METINS</h1>
-                    <p class="text-gray-400 mb-6">METINS é uma plataforma interativa criada para testar e aprimorar suas habilidades de raciocínio lógico e cálculo rápido em um formato de desafio diário.</p>
-
-                    <h2 class="text-2xl font-bold mt-6 mb-3 text-yellow-400">Como Funciona?</h2>
-                    <ul class="list-disc list-inside space-y-2 text-gray-300">
-                        <li>Você tem **3 minutos** para responder o máximo de perguntas de lógica e matemática possível.</li>
-                        <li>Cada resposta correta vale **100 pontos**.</li>
-                        <li>**Um erro** ou o **tempo esgotado** encerra sua sessão.</li>
-                        <li>Sua pontuação é registrada no **Hall da Fama Diário** (apenas sua melhor pontuação do dia é considerada).</li>
-                    </ul>
-
-                    <h2 class="text-2xl font-bold mt-6 mb-3 text-indigo-400">Tecnologia</h2>
-                    <p class="text-gray-300">Este projeto foi desenvolvido utilizando HTML, Tailwind CSS para estilização e Firebase (Auth e Firestore) para autenticação anônima e o armazenamento/gerenciamento do ranking em tempo real.</p>
-                </div>
-            </div>
-
-        </div>
-    </main>
+            <div id="view-sobre" class="view-content hidden transition duration-500 opacity-0 px-4">
+                <div class="card p-8 rounded-xl shadow-2xl space-y-4">
+                    <h2 class="text-3xl font-extrabold text-indigo-400 mb-4 font-orbitron">Sobre o Projeto Metins</h2>
+                    <p class="text-gray-300">Metins é um desafio interativo e rápido projetado para testar sua capacidade de resposta e raciocínio lógico em um curto período de tempo.</p>
+                    
+                    <h3 class="text-xl font-bold text-gray-200 pt-4">Como Funciona:</h3>
+                    <ul class="list-disc list-inside text-gray-400 space-y-2 ml-4">
+                        <li>Você tem **3 minutos (180 segundos)** para responder o máximo de perguntas de lógica e matemática possível.</li>
+                        <li>Cada acerto vale **100 pontos**.</li>
+                        <li>O jogo termina se você **errar uma resposta** ou se o **tempo acabar**.</li>
+                        <li>Sua pontuação final é registrada no **Hall da Fama Diário**.</li>
+                    </ul>
+                    
+                    <h3 class="text-xl font-bold text-gray-200 pt-4">Tecnologias Usadas:</h3>
+                    <p class="text-gray-400">Desenvolvido com **HTML**, **JavaScript** (ES Modules) e estilizado com **Tailwind CSS**. O armazenamento e o ranking em tempo real são feitos utilizando **Google Firebase (Firestore)**.</p>
+                </div>
+            </div>
+        </div>
+    </main>
 </body>
 </html>
