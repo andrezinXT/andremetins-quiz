@@ -6,57 +6,57 @@
     <title>Metins: Desafios Interativos do dia</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Orbitron:wght&display=swap');
-         :root {
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Orbitron:wght&display=swap');
+        :root {
             --color-primary: #8b5cf6; /* Indigo-500 */
-            --color-secondary: #3b82f6; /* Blue-500 */      
+            --color-secondary: #3b82f6; /* Blue-500 */     
         }
-         body {
+        body {
             font-family: 'Inter', sans-serif;
             transition: background-color 0.3s, color 0.3s;
         }
-         /* Estilos para Dark Mode (Padrão) */
-         .dark-mode {
+        /* Estilos para Dark Mode (Padrão) */
+        .dark-mode {
             background-color: #111827; /* Gray-900 */
             color: #e5e7eb; /* Gray-200 */
         }
-         .dark-mode .card {
+        .dark-mode .card {
             background-color: #1f2937; /* Gray-800 */
         }
-         .dark-mode .btn-primary {
+        .dark-mode .btn-primary {
             background-color: var(--color-primary);
             color: white;
         }
 
-         /* Estilos para Light Mode */
-         .light-mode {
+        /* Estilos para Light Mode */
+        .light-mode {
             background-color: #f9fafb; /* Gray-50 */
             color: #1f2937; /* Gray-800 */
         }
-         .light-mode .card {
+        .light-mode .card {
             background-color: white;
             border: 1px solid #e5e7eb;
         }
-         .light-mode .btn-primary {
+        .light-mode .btn-primary {
             background-color: var(--color-primary);
             color: white;
         }
         
-         .timer-glow {
+        .timer-glow {
             font-family: 'Orbitron', sans-serif;
             text-shadow: 0 0 10px var(--color-primary), 0 0 20px var(--color-primary);
         }
-         .neon-border {
+        .neon-border {
             border: 2px solid var(--color-primary);
             box-shadow: 0 0 10px var(--color-primary);
         }
 
-         /* Destaque para o campo de nome */
-         .name-focus {
+        /* Destaque para o campo de nome */
+        .name-focus {
             box-shadow: 0 0 15px #facc15; /* Yellow-400 */
             animation: pulse-name 1.5s infinite;
         }
-         @keyframes pulse-name {
+        @keyframes pulse-name {
             0% { box-shadow: 0 0 5px #facc15; }
             50% { box-shadow: 0 0 15px #facc15; }
             100% { box-shadow: 0 0 5px #facc15; }
@@ -65,193 +65,13 @@
 </head>
 <body class="dark-mode">
     
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, setLogLevel, query, orderBy, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        // =========================================================================
-        // CONFIGURAÇÃO REAL DO PROJETO 'metins-quiz'
-        // =========================================================================
-        const firebaseConfig = {
-            apiKey: "AIzaSyBxWFlxHFlDE0Uyiozrz275MJsm1VP6QjK",
-            authDomain: "metins-64fff.firebaseapp.com",
-            projectId: "metins-64fff",
-            storageBucket: "metins-64fff.firebaseapp.com",
-            messagingSenderId: "891946067847",
-            appId: "1:891946067847:web:f87ad568ffe6ffa2a8d522",
-            measurementId: "G-SLFE6LNCM8" 
-        };
-        
-        // Inicialização
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        window.auth = auth; 
-        
-        setLogLevel('Debug');
-
-        let userId = null;
-        let dbReady = false;
-
-        const SCORES_COLLECTION = "resultados"; 
-
-        // 🛑 NOVO: Função para garantir o formato de data consistente
-        function getTodayDate() {
-            return new Date().toISOString().split('T')[0];
-        }
-
-        // -----------------------------------------------------------
-        // 1. AUTENTICAÇÃO E INICIALIZAÇÃO
-        // -----------------------------------------------------------
-
-        async function authenticate() {
-            try {
-                // Autenticação anônima
-                await signInAnonymously(auth);
-            } catch (error) {
-                console.error("Erro na autenticação:", error);
-            }
-        }
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                userId = user.uid;  
-                dbReady = true; 
-                console.log("Usuário pronto:", userId);
-                loadRankingListener();
-            } else {
-                // Fallback para ID
-                userId = crypto.randomUUID(); 
-                dbReady = false; 
-                console.warn("Autenticação pendente ou falhou. Ranking indisponível.");
-            }
-            
-            document.getElementById('user-id').textContent = `ID: ${userId.substring(0, 8)}`;
-        });
-
-        // -----------------------------------------------------------
-        // 2. LÓGICA DO RANKING (FIRESTORE)
-        // -----------------------------------------------------------
-
-        window.saveScore = async (score) => {
-            if (!dbReady) {
-                console.error("Firestore não está pronto. Verifique a autenticação.");
-                return;
-            }
-            
-            const finalUserName = window.playerName || `Jogador ${userId.substring(0, 4)}...`;
-
-            const playerDoc = {
-                userId: userId,
-                userName: finalUserName, 
-                score: score, 
-                timestamp: serverTimestamp(),
-                date: getTodayDate() // Usa a função corrigida
-            };
-            
-            window.lastSubmittedName = finalUserName;
-
-            try {
-                await addDoc(collection(db, SCORES_COLLECTION), playerDoc);
-                console.log("Pontuação da sessão salva com sucesso!");
-            } catch (e) {
-                console.error("Erro ao adicionar documento: ", e);
-            }
-        };
-
-        // <<<<<<<<<<<<<<<<<<<< FUNÇÃO DE CARREGAMENTO DO RANKING CORRIGIDA >>>>>>>>>>>>>>>>>>>>
-        function loadRankingListener() {
-            if (!dbReady) return;
-            
-            const today = getTodayDate(); // Obtém a data de hoje para o filtro
-
-            // 1. Cria a consulta (query)
-            // 🛑 CORRIGIDO: Adicionando o filtro de data (where) à consulta do Firestore
-            const q = query(
-                collection(db, SCORES_COLLECTION),
-                where("date", "==", today),
-                // 🛑 CORRIGIDO: Ordenação OBRIGATÓRIA para o índice composto com 'date'
-                orderBy("date", "asc"), 
-                orderBy("score", "desc"),    // Ordem principal: score (maior para o menor)
-                orderBy("userName", "asc")   // Ordem secundária (desempate): nome
-            );
-            
-            // 2. Listener em tempo real
-            onSnapshot(q, (snapshot) => {
-                const dailyScores = []; // Renomeado para dailyScores
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
-                    // Todos os dados no snapshot já são do dia atual e já vêm ordenados.
-                    if (data.score !== undefined) {
-                           dailyScores.push({ id: doc.id, ...data });
-                    }
-                });
-                
-                // Agora renderHallDaFama precisa apenas AGREGAR os scores diários
-                renderHallDaFama(dailyScores);
-            }, (error) => {
-                console.error("Erro ao ouvir o ranking: ", error); 
-                document.getElementById('ranking-list').innerHTML = `<p class="text-red-400">Erro ao carregar ranking. Verifique o console e o índice composto.</p>`;
-            });
-        }
-        // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< FIM DA CORREÇÃO >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-        function renderHallDaFama(scores) {
-            const rankingList = document.getElementById('ranking-list');
-            if (!rankingList) return;
-            rankingList.innerHTML = '';
-            
-            // 🛑 REMOÇÃO DO FILTRO MANUAL: O filtro por data já foi feito no Firestore na função loadRankingListener
-            const dailyScores = scores; 
-
-            // 1. Agrupa pelo melhor score por usuário (userId)
-            const dailyUserScoresMap = dailyScores.reduce((acc, score) => {
-                const currentBest = acc[score.userId] ? acc[score.userId].score : 0;
-
-                // Salva a nova pontuação se for maior (ou se for o nome recém-enviado com pontuação igual)
-                if (score.score > currentBest || (score.userName === window.lastSubmittedName && score.score === currentBest)) {
-                    acc[score.userId] = { 
-                        score: score.score, 
-                        userName: score.userName 
-                    };
-                }
-                return acc;
-            }, {});
-
-            // 2. Converte para array e ordena novamente (garantia, mas já vem quase ordenado pela query)
-            const rankedDaily = Object.values(dailyUserScoresMap)
-                .sort((a, b) => b.score - a.score)  
-                .slice(0, 10);  
-
-            if (rankedDaily.length === 0) {
-                rankingList.innerHTML = `<p class="text-gray-400 text-center py-4">Ninguém jogou hoje ainda. Seja o primeiro!</p>`;
-                return;
-            }
-
-            // 3. Renderiza a lista
-            rankedDaily.forEach((entry, index) => {
-                const rankClass = index === 0 ? 'bg-yellow-500/20 text-yellow-300 font-bold neon-border' : 
-                                             index === 1 ? 'bg-gray-400/20 text-gray-300' :
-                                             index === 2 ? 'bg-amber-700/20 text-amber-500' : 'bg-gray-700/20 text-gray-300';
-                
-                const isLastPlayer = (entry.userName === window.lastSubmittedName);
-                const userHighlight = isLastPlayer ? ' neon-border border-indigo-500' : '';
-
-                rankingList.innerHTML += `
-                    <li class="flex justify-between items-center p-3 rounded-lg transition duration-200 ${rankClass} ${userHighlight}">
-                        <span class="w-1/12 text-center text-xl">${index + 1}°</span>
-                        <span class="w-8/12 truncate ${isLastPlayer ? 'text-indigo-400 font-bold' : ''}">${entry.userName} ${isLastPlayer ? '(Você)' : ''}</span>
-                        <span class="w-3/12 text-right font-orbitron text-lg">${entry.score} pts</span>
-                    </li>
-                `;
-            });
-        }
-
-        window.addEventListener('load', authenticate);
-    </script>
-    
     <script>
+        // =========================================================================
+        // VARIÁVEIS GLOBAIS E CONSTANTES
+        // =========================================================================
+        
+        // Chave para armazenar o ranking no Local Storage
+        const RANKING_STORAGE_KEY = "metins_daily_scores";
         // Variável global para o nome (definida na Home)
         window.playerName = 'Jogador Anônimo';
         window.lastSubmittedName = 'Jogador Anônimo'; // Usado para destacar o último jogador no ranking
@@ -265,7 +85,13 @@
         let sessionChallenges = [];    // Lista de desafios embaralhados para a sessão
         let currentSessionScore = 0;    // Pontuação da sessão atual
         const SCORE_PER_QUESTION = 100;
-        const INITIAL_TIME = 180; 
+        const INITIAL_TIME = 180;
+        let userId = crypto.randomUUID(); // Gera um ID único local para simular a identificação
+
+        // 🛑 NOVO: Função para obter a data de hoje consistente
+        function getTodayDate() {
+            return new Date().toISOString().split('T')[0];
+        }
 
         // Função de embaralhamento Fisher-Yates
         function shuffleArray(array) {
@@ -278,6 +104,7 @@
 
         // Banco de Perguntas (MANTIDO)
         const CHALLENGES = [
+            // ... (Mantenha seu array CHALLENGES aqui) ...
             { id: 1, title: "O Enigma do Supermercado", question: "Se 4 maçãs custam R$ 8,00, e você tem R$ 15,00, quantas maçãs você pode comprar no máximo? (Responda o número de maçãs)", answer: 7 },
             { id: 2, title: "O Código da Reunião", question: "Se a reunião começa às 9:30 e dura 45 minutos, a que horas (em minutos após a hora cheia) ela termina? (Responda apenas o minuto)", answer: 15 },
             { id: 3, title: "A Regra dos Três Irmãos", question: "Tenho 3 filhos. O primeiro tem o dobro da idade do segundo, e o terceiro tem 5 anos. Se a soma das idades é 20, quantos anos tem o filho do meio? (Responda a idade)", answer: 5 },
@@ -304,7 +131,129 @@
             { id: 24, title: "Ordem das Operações", question: "Qual o resultado de 2 * (4 + 6)? (Responda o número)", answer: 20 },
             { id: 25, title: "Metade do Tempo", question: "Metade de 60 minutos é igual a quantos minutos? (Responda o número)", answer: 30 }
         ];
+
+        // =========================================================================
+        // LÓGICA DE RANKING (LOCAL STORAGE)
+        // =========================================================================
+
+        /**
+         * Carrega todos os scores salvos no Local Storage.
+         * @returns {Array} Lista de scores.
+         */
+        function loadScoresFromLocalStorage() {
+            const json = localStorage.getItem(RANKING_STORAGE_KEY);
+            return json ? JSON.parse(json) : [];
+        }
+
+        /**
+         * Salva um novo score no Local Storage.
+         * @param {number} score - A pontuação final.
+         */
+        window.saveScore = (score) => {
+            const allScores = loadScoresFromLocalStorage();
+            const finalUserName = window.playerName || `Jogador ${userId.substring(0, 4)}...`;
+
+            const playerDoc = {
+                userId: userId,
+                userName: finalUserName, 
+                score: score, 
+                timestamp: new Date().getTime(), // Usando timestamp JS
+                date: getTodayDate()
+            };
+            
+            allScores.push(playerDoc);
+            
+            // Salva a lista atualizada de volta no Local Storage
+            localStorage.setItem(RANKING_STORAGE_KEY, JSON.stringify(allScores));
+            console.log("Pontuação da sessão salva localmente!");
+            window.lastSubmittedName = finalUserName; // Mantém o destaque
+        };
+
+        /**
+         * Carrega o ranking, faz o filtro e a agregação localmente.
+         * Esta função substitui loadRankingListener do Firebase.
+         */
+        function loadRankingAndRender() {
+            const allScores = loadScoresFromLocalStorage();
+            const today = getTodayDate();
+            
+            // 1. Filtra os scores carregados pela data de hoje
+            const dailyScores = allScores.filter(score => score.date === today);
+
+            // 2. Agrupa pelo melhor score por usuário (userId)
+            const dailyUserScoresMap = dailyScores.reduce((acc, score) => {
+                const currentBest = acc[score.userId] ? acc[score.userId].score : 0;
+
+                // Salva a nova pontuação se for maior
+                if (score.score > currentBest) {
+                    acc[score.userId] = { 
+                        score: score.score, 
+                        userName: score.userName,
+                        userId: score.userId
+                    };
+                }
+                // Se a pontuação for igual, usa o nome recém-enviado para destaque.
+                else if (score.score === currentBest && score.userName === window.lastSubmittedName) {
+                     acc[score.userId].userName = window.lastSubmittedName;
+                }
+                return acc;
+            }, {});
+
+            // 3. Converte para array e ordena (maior score primeiro)
+            const rankedDaily = Object.values(dailyUserScoresMap)
+                .sort((a, b) => {
+                    // Ordena por score (descendente)
+                    if (b.score !== a.score) return b.score - a.score;
+                    // Desempate por nome (ascendente)
+                    return a.userName.localeCompare(b.userName);
+                })  
+                .slice(0, 10); // Limita aos 10 melhores
+
+            renderHallDaFama(rankedDaily);
+        }
+
+        /**
+         * Renderiza o ranking no Hall da Fama
+         * @param {Array} rankedDaily - A lista de scores já processada e ordenada.
+         */
+        function renderHallDaFama(rankedDaily) {
+            const rankingList = document.getElementById('ranking-list');
+            if (!rankingList) return;
+            rankingList.innerHTML = '';
+            
+            // Adiciona o ID do usuário (local) para visualização
+            document.getElementById('user-id').textContent = `ID Local: ${userId.substring(0, 8)}`;
+
+
+            if (rankedDaily.length === 0) {
+                rankingList.innerHTML = `<p class="text-gray-400 text-center py-4">Ninguém jogou hoje ainda. Seja o primeiro!</p>`;
+                return;
+            }
+
+            // 3. Renderiza a lista
+            rankedDaily.forEach((entry, index) => {
+                const rankClass = index === 0 ? 'bg-yellow-500/20 text-yellow-300 font-bold neon-border' : 
+                                             index === 1 ? 'bg-gray-400/20 text-gray-300' :
+                                             index === 2 ? 'bg-amber-700/20 text-amber-500' : 'bg-gray-700/20 text-gray-300';
+                
+                // 🛑 AQUI: Verifica o destaque com base no ID do usuário local
+                const isCurrentUser = (entry.userId === userId);
+                const userHighlight = isCurrentUser ? ' neon-border border-indigo-500' : '';
+
+                rankingList.innerHTML += `
+                    <li class="flex justify-between items-center p-3 rounded-lg transition duration-200 ${rankClass} ${userHighlight}">
+                        <span class="w-1/12 text-center text-xl">${index + 1}°</span>
+                        <span class="w-8/12 truncate ${isCurrentUser ? 'text-indigo-400 font-bold' : ''}">${entry.userName} ${isCurrentUser ? '(Você)' : ''}</span>
+                        <span class="w-3/12 text-right font-orbitron text-lg">${entry.score} pts</span>
+                    </li>
+                `;
+            });
+        }
         
+        // =========================================================================
+        // LÓGICA DE JOGO (MANTIDA)
+        // =========================================================================
+
         /**
          * Lógica de navegação: Oculta todas as views e mostra a view selecionada.
          */
@@ -327,6 +276,11 @@
                 }
             } else {
                 stopTimer(); // Para o timer se sair do desafio
+            }
+            
+            // 🛑 NOVO: Carrega o ranking sempre que a view Hall da Fama é acessada
+            if (viewId === 'hall-da-fama') {
+                loadRankingAndRender();
             }
         };
 
@@ -408,19 +362,12 @@
         }
 
         /**
-         * Reseta o jogo, autentica novo jogador e força a volta para a Home.
+         * Reseta o jogo, gera um novo ID local e força a volta para a Home.
          */
         window.nextChallenge = async () => {
-            // Re-autentica o usuário para gerar um novo ID (simulando um novo jogador)
-            const newAuth = window.auth; 
-            if (newAuth) {
-                try {
-                    await newAuth.signInAnonymously(newAuth); 
-                    console.log("Novo jogador anônimo autenticado (se o ambiente permitir).");
-                } catch (error) {
-                    console.error("Erro ao autenticar novo jogador:", error);
-                }
-            }
+            // 🛑 NOVO: Gera um novo ID local para simular um "novo jogador"
+            userId = crypto.randomUUID(); 
+            console.log("Novo ID local gerado:", userId.substring(0, 8));
             
             // Limpa o nome para o próximo jogador digitar o seu
             document.getElementById('home-player-name').value = '';
@@ -512,8 +459,8 @@
             quizActive = false;
             
             // Salva a pontuação final (se for maior que 0)
-            if (currentSessionScore > 0 && window.saveScore) {
-                window.saveScore(currentSessionScore);
+            if (currentSessionScore > 0) {
+                window.saveScore(currentSessionScore); // Chama a nova função saveScore local
             }
             
             // Esconde a área do quiz
@@ -643,99 +590,105 @@
             <div id="view-home" class="view-content transition duration-500 opacity-0 px-4">
                 <div class="card p-8 rounded-xl shadow-2xl">
                     <h1 class="text-4xl font-extrabold text-indigo-400 mb-4 font-orbitron">Bem-vindo(a) ao METINS!</h1>
-                    <p class="text-gray-400 mb-6">Teste sua velocidade de raciocínio e concorra ao Hall da Fama diário.</p>
-                    
-                    <h2 class="text-xl font-bold mb-4 text-yellow-400">Entre para Começar</h2>
-                    <div class="mb-4">
-                        <label for="home-player-name" class="block text-sm font-medium text-gray-300">Seu Nome/Apelido</label>
-                        <input type="text" id="home-player-name" placeholder="Ex: Capivarinha Mágica" class="mt-1 block w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-yellow-500 focus:border-yellow-500 name-focus">
-                        <p id="name-feedback" class="text-red-400 text-sm mt-1"></p>
+                    <p class="text-xl mb-6">Teste sua velocidade mental em 3 minutos e concorra ao ranking diário!</p>
+
+                    <div class="mb-8">
+                        <label for="home-player-name" class="block text-sm font-medium text-gray-300 dark-mode:text-gray-300 light-mode:text-gray-700">Seu Nome/Apelido (Min. 2 caracteres)</label>
+                        <input type="text" id="home-player-name" placeholder="Ex: Capivara Veloz" maxlength="20" class="mt-1 block w-full px-3 py-2 rounded-md border border-gray-600 dark-mode:bg-gray-900 dark-mode:text-white light-mode:bg-white light-mode:border-gray-300 shadow-sm focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 text-lg name-focus">
+                        <p id="name-feedback" class="mt-2 text-sm text-red-400"></p>
                     </div>
-                    <button onclick="startChallengeFromHome()" class="btn-primary w-full py-3 rounded-md text-lg font-bold hover:opacity-90 transition duration-150">
-                        🚀 Começar Desafio!
-                    </button>
-                    
-                    <p id="user-id" class="text-xs text-gray-500 mt-4 text-right">ID: Desconhecido</p>
+
+                    <div class="space-y-4">
+                        <button onclick="startChallengeFromHome()" class="w-full btn-primary px-6 py-3 text-lg font-bold rounded-xl transition duration-300 hover:shadow-lg hover:bg-indigo-600">
+                            Iniciar Desafio! 🚀
+                        </button>
+                        <button onclick="navigate('hall-da-fama')" class="w-full bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 text-lg font-bold rounded-xl transition duration-300">
+                            Ver Hall da Fama
+                        </button>
+                        <p id="user-id" class="text-xs text-right text-gray-500 pt-4">ID: Não autenticado</p>
+                    </div>
                 </div>
             </div>
 
-            <div id="view-desafio" class="view-content hidden transition duration-500 opacity-0 px-4">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="md:col-span-1">
-                        <div class="card p-6 rounded-xl shadow-xl sticky top-20">
-                            <h2 class="text-xl font-bold mb-4 text-indigo-400">Status do Desafio</h2>
-                            
-                            <div class="mb-4 p-4 bg-gray-700/50 rounded-lg text-center">
-                                <p class="text-gray-400 text-sm">Tempo Restante</p>
-                                <div id="timer" class="timer-glow text-5xl font-extrabold text-indigo-400 mt-1">03:00</div>
-                            </div>
-
-                            <div class="mb-4 p-4 bg-gray-700/50 rounded-lg text-center">
-                                <p class="text-gray-400 text-sm">Pontuação Atual</p>
-                                <div id="score" class="timer-glow text-4xl font-extrabold text-yellow-400 mt-1">0</div>
-                            </div>
-
-                            <p class="text-sm text-gray-500 mt-4 text-center">Responda corretamente para aumentar seu score. Um erro ou o tempo esgotado encerra a sessão!</p>
+            <div id="view-desafio" class="view-content transition duration-500 opacity-0 hidden px-4">
+                <div class="card p-8 rounded-xl shadow-2xl">
+                    <h2 class="text-3xl font-extrabold text-indigo-400 mb-6 font-orbitron">🎯 Desafio Mental</h2>
+                    
+                    <div class="flex justify-between items-center mb-6 p-4 rounded-lg bg-gray-700/50">
+                        <div class="text-center">
+                            <span class="text-sm text-gray-400 block">TEMPO</span>
+                            <span id="timer" class="text-4xl timer-glow font-orbitron text-red-400">03:00</span>
+                        </div>
+                        <div class="text-center">
+                            <span class="text-sm text-gray-400 block">PONTUAÇÃO</span>
+                            <span id="score" class="text-4xl timer-glow font-orbitron text-green-400">0</span>
                         </div>
                     </div>
 
-                    <div class="md:col-span-2">
-                        <div id="quiz-completed-message" class="hidden card p-6 rounded-xl shadow-xl text-center mb-6 bg-red-500/20 text-red-300">
-                            <h3 id="final-score-text" class="text-xl font-bold mb-4"></h3>
+                    <div id="quiz-area">
+                        <h3 id="challenge-title" class="text-xl font-bold mb-4 text-yellow-400"></h3>
+                        <p id="challenge-question" class="text-lg mb-6"></p>
+
+                        <div class="mb-4">
+                            <label for="resposta" class="block text-sm font-medium text-gray-300">Sua Resposta (Apenas o número)</label>
+                            <input type="number" id="resposta" placeholder="Digite o número da resposta" class="mt-1 block w-full px-4 py-3 rounded-lg border border-gray-600 dark-mode:bg-gray-900 dark-mode:text-white light-mode:bg-white light-mode:border-gray-300 shadow-sm text-2xl focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" onkeydown="if(event.key === 'Enter') submitQuiz()">
                         </div>
                         
-                        <div id="quiz-area" class="card p-8 rounded-xl shadow-xl">
-                            <h2 id="challenge-title" class="text-2xl font-bold mb-4 text-indigo-400">Título do Enigma</h2>
-                            <p id="challenge-question" class="text-xl text-gray-300 mb-6 font-medium">**Enigma:** Pergunta aqui...</p>
-                            
-                            <div class="mb-4">
-                                <label for="resposta" class="block text-sm font-medium text-gray-300">Sua Resposta (Apenas o número)</label>
-                                <input type="number" id="resposta" placeholder="Digite sua resposta" class="mt-1 block w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-green-500 focus:border-green-500" onkeydown="if(event.key === 'Enter') submitQuiz()">
-                                <p id="question-feedback" class="text-green-400 text-sm mt-2 font-bold">Nova pergunta!</p>
-                            </div>
-                            
-                            <button onclick="submitQuiz()" class="btn-primary w-full py-3 rounded-md text-lg font-bold hover:opacity-90 transition duration-150 mt-4">
-                                Enviar Resposta
-                            </button>
-                        </div>
+                        <p id="question-feedback" class="text-sm h-6 mb-4 text-green-400"></p>
 
-                        <div id="next-challenge-area" class="hidden mt-6 text-center">
-                            <button onclick="window.nextChallenge()" class="bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-md font-bold transition duration-150">
-                                Próximo Jogador / Novo Desafio
-                            </button>
-                        </div>
+                        <button onclick="submitQuiz()" class="w-full btn-primary px-6 py-3 text-xl font-bold rounded-lg transition duration-300 hover:shadow-xl hover:bg-indigo-600">
+                            Responder e Próximo
+                        </button>
+                    </div>
+
+                    <div id="quiz-completed-message" class="hidden text-center p-8 rounded-xl shadow-inner neon-border">
+                        <p id="final-score-text" class="text-2xl"></p>
+                    </div>
+                    
+                    <div id="next-challenge-area" class="mt-6 hidden">
+                        <button onclick="nextChallenge()" class="w-full bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 text-lg font-bold rounded-xl transition duration-300">
+                            Próximo Jogador (Resetar)
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <div id="view-hall-da-fama" class="view-content hidden transition duration-500 opacity-0 px-4">
+            <div id="view-hall-da-fama" class="view-content transition duration-500 opacity-0 hidden px-4">
                 <div class="card p-8 rounded-xl shadow-2xl">
-                    <h1 class="text-4xl font-extrabold text-yellow-400 mb-4 font-orbitron text-center">🏆 Hall da Fama Diário</h1>
-                    <p class="text-gray-400 text-center mb-6">Os 10 melhores resultados de hoje!</p>
+                    <h2 class="text-3xl font-extrabold text-yellow-400 mb-6 font-orbitron text-center">🏆 Hall da Fama Diário (Local)</h2>
+                    <p class="text-center text-sm mb-4 text-gray-400">Este ranking é salvo **somente neste navegador/dispositivo**.</p>
                     
                     <ul id="ranking-list" class="space-y-3">
                         <p class="text-gray-400 text-center py-4">Carregando ranking...</p>
                     </ul>
 
-                    <p class="text-xs text-gray-500 mt-6 text-center">O ranking é atualizado em tempo real. Sua melhor pontuação do dia é exibida.</p>
+                    <div class="mt-8 text-center">
+                        <button onclick="navigate('home')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 text-lg font-bold rounded-xl transition duration-300">
+                            Voltar para Home
+                        </button>
+                    </div>
                 </div>
             </div>
-            
-            <div id="view-sobre" class="view-content hidden transition duration-500 opacity-0 px-4">
+
+            <div id="view-sobre" class="view-content transition duration-500 opacity-0 hidden px-4">
                 <div class="card p-8 rounded-xl shadow-2xl">
-                    <h1 class="text-4xl font-extrabold text-indigo-400 mb-4">Sobre o METINS</h1>
-                    <p class="text-gray-400 mb-6">METINS é uma plataforma interativa criada para testar e aprimorar suas habilidades de raciocínio lógico e cálculo rápido em um formato de desafio diário.</p>
-
-                    <h2 class="text-2xl font-bold mt-6 mb-3 text-yellow-400">Como Funciona?</h2>
-                    <ul class="list-disc list-inside space-y-2 text-gray-300">
-                        <li>Você tem **3 minutos** para responder o máximo de perguntas de lógica e matemática possível.</li>
-                        <li>Cada resposta correta vale **100 pontos**.</li>
-                        <li>**Um erro** ou o **tempo esgotado** encerra sua sessão.</li>
-                        <li>Sua pontuação é registrada no **Hall da Fama Diário** (apenas sua melhor pontuação do dia é considerada).</li>
+                    <h2 class="text-3xl font-extrabold text-indigo-400 mb-4 font-orbitron">Sobre o METINS</h2>
+                    <p class="mb-4">Este é um projeto simples para testar habilidades de raciocínio rápido e lógica matemática. O objetivo é responder ao maior número de perguntas corretamente no menor tempo possível.</p>
+                    <h3 class="text-xl font-bold mt-6 mb-2 text-yellow-400">Tecnologia</h3>
+                    <p class="mb-4">O jogo utiliza HTML, CSS (Tailwind CSS) e JavaScript puro. O ranking é salvo usando o **Local Storage** do seu navegador, o que significa que as pontuações não são compartilhadas com outros usuários.</p>
+                    <h3 class="text-xl font-bold mt-6 mb-2 text-yellow-400">Regras</h3>
+                    <ul class="list-disc list-inside ml-4 space-y-2 text-gray-300">
+                        <li>Você tem 3 minutos para responder o máximo de enigmas.</li>
+                        <li>Cada acerto vale 100 pontos.</li>
+                        <li>Um erro termina o desafio imediatamente.</li>
+                        <li>O tempo esgotado também encerra o desafio.</li>
+                        <li>Apenas o seu **melhor score do dia** é registrado no ranking local.</li>
                     </ul>
-
-                    <h2 class="text-2xl font-bold mt-6 mb-3 text-indigo-400">Tecnologia</h2>
-                    <p class="text-gray-300">Este projeto foi desenvolvido utilizando HTML, Tailwind CSS para estilização e Firebase (Auth e Firestore) para autenticação anônima e o armazenamento/gerenciamento do ranking em tempo real.</p>
+                    <div class="mt-8 text-center">
+                        <button onclick="navigate('home')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 text-lg font-bold rounded-xl transition duration-300">
+                            Entendi! Vamos Jogar
+                        </button>
+                    </div>
                 </div>
             </div>
 
