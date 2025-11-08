@@ -67,12 +67,23 @@
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
-        // Variáveis globais do Canvas
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        // =========================================================================
+        // CONFIGURAÇÃO REAL DO PROJETO 'metins-quiz' (retirada de image_1e4f94.png)
+        // =========================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCXFWrCzEegzRzmFdc7TPa_bSC7ZVY39-Ac",
+            authDomain: "metins-quiz.firebaseapp.com",
+            projectId: "metins-quiz",
+            storageBucket: "metins-quiz.appspot.com",
+            messagingSenderId: "612138505421",
+            appId: "1:612138505421:web:b4da9c7fb6a15032ae0584"
+        };
+        
+        // Usamos o projectId como o 'appId' para manter a estrutura do caminho do Canvas/Regra de segurança.
+        const appId = firebaseConfig.projectId; 
         
         // Inicialização
         const app = initializeApp(firebaseConfig);
@@ -85,9 +96,10 @@
         let userId = null;
         let dbReady = false;
 
-        // CAMINHO DO CANVAS RESTAURADO
+        // <<<<<<<<<<<<<<<<<<<< CAMINHO FIRESTORE DO CANVAS/REGRAS >>>>>>>>>>>>>>>>>>>>
+        // Caminho: artifacts/{projectId}/public/data/daily_scores
         const SCORES_COLLECTION = `artifacts/${appId}/public/data/daily_scores`; 
-        // -----------------------------
+        // ------------------------------------------------------------------------
 
         // -----------------------------------------------------------
         // 1. AUTENTICAÇÃO E INICIALIZAÇÃO
@@ -95,11 +107,8 @@
 
         async function authenticate() {
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                // Autenticação anônima é suficiente e funciona com a regra 'if request.auth != null'
+                await signInAnonymously(auth);
             } catch (error) {
                 console.error("Erro na autenticação:", error);
             }
@@ -144,6 +153,7 @@
             window.lastSubmittedName = finalUserName;
 
             try {
+                // Tenta adicionar na coleção SCORES_COLLECTION
                 await addDoc(collection(db, SCORES_COLLECTION), playerDoc);
                 console.log("Pontuação da sessão salva com sucesso!");
             } catch (e) {
@@ -248,7 +258,7 @@
             return array;
         }
 
-        // Banco de Perguntas
+        // Banco de Perguntas (MANTIDO)
         const CHALLENGES = [
             { id: 1, title: "O Enigma do Supermercado", question: "Se 4 maçãs custam R$ 8,00, e você tem R$ 15,00, quantas maçãs você pode comprar no máximo? (Responda o número de maçãs)", answer: 7 },
             { id: 2, title: "O Código da Reunião", question: "Se a reunião começa às 9:30 e dura 45 minutos, a que horas (em minutos após a hora cheia) ela termina? (Responda apenas o minuto)", answer: 15 },
