@@ -18,7 +18,7 @@
         /* Estilos para Dark Mode (Padrão) */
         .dark-mode {
             background-color: #111827; /* Gray-900 */
-            color: #e5e7eb; /* Gray-200 */
+            color: black; /* Gray-200 */
         }
         .dark-mode .card {
             background-color: #1f2937; /* Gray-800 */
@@ -589,9 +589,14 @@
             
             <div id="view-home" class="view-content transition duration-500 opacity-0 px-4">
                 <div class="card p-8 rounded-xl shadow-2xl">
-                    <h1 class="text-4xl font-extrabold text-indigo-400 mb-4 font-orbitron">Bem-vindo(a) ao METINS!</h1>
-                    <p class="text-xl mb-6">Teste sua velocidade mental em 3 minutos e concorra ao ranking diário!</p>
+                    <h2 class="text-4xl font-extrabold text-indigo-400 mb-4 font-orbitron">Bem-vindo(a) ao METINS!</h1>
+                  
+ 		<p class="texto-branco" style="color: white; font-size: 30px;">Teste sua velocidade mental em 3 minutos e concorra ao ranking diário!</p>
+		<br> 
 
+ <br> 
+ <br>  
+<br> 
                     <div class="mb-8">
                         <label for="home-player-name" class="block text-sm font-medium text-gray-300 dark-mode:text-gray-300 light-mode:text-gray-700">Seu Nome/Apelido (Min. 2 caracteres)</label>
                         <input type="text" id="home-player-name" placeholder="Ex: Capivara Veloz" maxlength="20" class="mt-1 block w-full px-3 py-2 rounded-md border border-gray-600 dark-mode:bg-gray-900 dark-mode:text-white light-mode:bg-white light-mode:border-gray-300 shadow-sm focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 text-lg name-focus">
@@ -670,12 +675,14 @@
                 </div>
             </div>
 
-            <div id="view-sobre" class="view-content transition duration-500 opacity-0 hidden px-4">
+          
+
+ 		<div id="view-sobre" class="view-content transition duration-500 opacity-0 hidden px-4">
                 <div class="card p-8 rounded-xl shadow-2xl">
                     <h2 class="text-3xl font-extrabold text-indigo-400 mb-4 font-orbitron">Sobre o METINS</h2>
-                    <p class="mb-4">Este é um projeto simples para testar habilidades de raciocínio rápido e lógica matemática. O objetivo é responder ao maior número de perguntas corretamente no menor tempo possível.</p>
+                    <p class="texto-branco" style="color: white;">Este é um projeto simples para testar habilidades de raciocínio rápido e lógica matemática. O objetivo é responder ao maior número de perguntas corretamente no menor tempo possível.</p>
                     <h3 class="text-xl font-bold mt-6 mb-2 text-yellow-400">Tecnologia</h3>
-                    <p class="mb-4">O jogo utiliza HTML, CSS (Tailwind CSS) e JavaScript puro. O ranking é salvo usando o **Local Storage** do seu navegador, o que significa que as pontuações não são compartilhadas com outros usuários.</p>
+                    <p class="texto-branco" style="color: white;">O jogo utiliza HTML, CSS (Tailwind CSS) e JavaScript puro. O ranking é salvo usando o **Local Storage** do seu navegador, o que significa que as pontuações não são compartilhadas com outros usuários.</p>
                     <h3 class="text-xl font-bold mt-6 mb-2 text-yellow-400">Regras</h3>
                     <ul class="list-disc list-inside ml-4 space-y-2 text-gray-300">
                         <li>Você tem 3 minutos para responder o máximo de enigmas.</li>
@@ -683,6 +690,15 @@
                         <li>Um erro termina o desafio imediatamente.</li>
                         <li>O tempo esgotado também encerra o desafio.</li>
                         <li>Apenas o seu **melhor score do dia** é registrado no ranking local.</li>
+			<h3 class="text-xl font-semibold text-indigo-300 mt-4">Equipe e Contato</h3>
+                        <p>
+                            Este projeto foi desenvolvido por: **André Mota**, **João Gabriel**, **Ewerton pinto** e **Luís Felipe**. Para sugestões ou *feedback*, envie um e-mail para [Seu E-mail].
+                        </p>
+
+
+
+
+
                     </ul>
                     <div class="mt-8 text-center">
                         <button onclick="navigate('home')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 text-lg font-bold rounded-xl transition duration-300">
@@ -696,4 +712,3 @@
     </main>
 </body>
 </html>
-
