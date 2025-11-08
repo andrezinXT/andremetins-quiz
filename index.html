@@ -71,7 +71,7 @@
         import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // =========================================================================
-        // CONFIGURAÇÃO REAL DO PROJETO 'metins-quiz' (retirada de image_1e4f94.png)
+        // CONFIGURAÇÃO REAL DO PROJETO 'metins-quiz'
         // =========================================================================
         const firebaseConfig = {
             apiKey: "AIzaSyCXFWrCzEegzRzmFdc7TPa_bSC7ZVY39-Ac",
@@ -81,9 +81,6 @@
             messagingSenderId: "612138505421",
             appId: "1:612138505421:web:b4da9c7fb6a15032ae0584"
         };
-        
-        // Usamos o projectId como o 'appId' para manter a estrutura do caminho do Canvas/Regra de segurança.
-        const appId = firebaseConfig.projectId; 
         
         // Inicialização
         const app = initializeApp(firebaseConfig);
@@ -96,8 +93,8 @@
         let userId = null;
         let dbReady = false;
 
-        // <<<<<<<<<<<<<<<<<<<< CAMINHO FIRESTORE DO CANVAS/REGRAS >>>>>>>>>>>>>>>>>>>>
-        // Caminho: artifacts/{projectId}/public/data/daily_scores
+        // <<<<<<<<<<<<<<<<<<<< CAMINHO SIMPLIFICADO RESOLVIDO >>>>>>>>>>>>>>>>>>>>
+        // Caminho da coleção que você criou: "resultados"
         const SCORES_COLLECTION = "resultados"; 
         // ------------------------------------------------------------------------
 
@@ -107,7 +104,7 @@
 
         async function authenticate() {
             try {
-                // Autenticação anônima é suficiente e funciona com a regra 'if request.auth != null'
+                // Autenticação anônima
                 await signInAnonymously(auth);
             } catch (error) {
                 console.error("Erro na autenticação:", error);
@@ -153,7 +150,6 @@
             window.lastSubmittedName = finalUserName;
 
             try {
-                // Tenta adicionar na coleção SCORES_COLLECTION
                 await addDoc(collection(db, SCORES_COLLECTION), playerDoc);
                 console.log("Pontuação da sessão salva com sucesso!");
             } catch (e) {
@@ -702,4 +698,3 @@
     </main>
 </body>
 </html>
-
